@@ -1,66 +1,36 @@
 <?php
 require_once 'includes/db.php';
 require_once 'includes/auth.php';
-requireAdmin(); // Apenas admin pode executar
+requireAdmin();
 
-// URL fictícia - substitua pela URL real do arquivo Lotofácil.xlsx
-$url = "https://loterias.caixa.gov.br/lotofacil/historico/Lotofácil.xlsx";
-$destino = __DIR__ . "/downloads/Lotofácil.xlsx";
+$url = "https://servicebus2.caixa.gov.br/portaldeloterias/api/lotofacil"; // API do último concurso
+$pdo = getDB();
 
-function downloadArquivo($url, $destino) {
-    // Verifica se o diretório downloads existe, senão cria
-    $dir = dirname($destino);
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
-    }
-
-    // Usa cURL para baixar o arquivo
+function baixarResultadoAPI($url, $pdo) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Segue redirecionamentos
-    curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"); // Simula um navegador
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Ignora SSL (use com cuidado)
+    curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $data = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
     if ($httpCode == 200 && $data !== false) {
-        file_put_contents($destino, $data);
-        return true;
-    } else {
-        return "Erro ao baixar: HTTP $httpCode";
-    }
-}
-
-function importarResultados($arquivo, $pdo) {
-    // Aqui você precisará de uma biblioteca como PhpSpreadsheet
-    require_once 'vendor/autoload.php';
-    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($arquivo);
-    $sheet = $spreadsheet->getActiveSheet();
-    $rows = $sheet->toArray();
-
-    foreach ($rows as $index => $row) {
-        if ($index == 0) continue; // Pula o cabeçalho
-        $concurso = (int) $row[0]; // Assume que a coluna 0 é o número do concurso
-        $numeros = array_map('intval', array_slice($row, 2, 15)); // Assume 15 números a partir da coluna 2
-        if (count($numeros) == 15) {
+        $json = json_decode($data, true);
+        if (isset($json['numero']) && isset($json['dezenas'])) {
+            $concurso = (int) $json['numero'];
+            $numeros = array_map('intval', $json['dezenas']);
             $stmt = $pdo->prepare("INSERT INTO resultados (concurso, numeros) VALUES (?, ?) ON DUPLICATE KEY UPDATE numeros = ?");
             $stmt->execute([$concurso, json_encode($numeros), json_encode($numeros)]);
+            return "Concurso $concurso importado com sucesso!";
         }
+        return "Dados inválidos retornados pela API.";
     }
-    return true;
+    return "Erro ao acessar a API: HTTP $httpCode";
 }
 
-$pdo = getDB();
-$resultado = downloadArquivo($url, $destino);
-
-if ($resultado === true) {
-    importarResultados($destino, $pdo);
-    $mensagem = "Arquivo baixado e resultados importados com sucesso!";
-} else {
-    $mensagem = $resultado;
-}
+$resultado = baixarResultadoAPI($url, $pdo);
 ?>
 
 <!DOCTYPE html>
@@ -73,7 +43,7 @@ if ($resultado === true) {
 <body>
     <div class="container mt-5">
         <h2>Download de Resultados</h2>
-        <p><?= $mensagem ?></p>
+        <p><?= $resultado ?></p>
         <a href="adicionar_resultado.php" class="btn btn-secondary">Voltar</a>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
