@@ -34,5 +34,5 @@ CREATE TABLE configuracoes (
 
 
 INSERT INTO usuarios (email, senha, nome, perfil) VALUES
-('bruno@lideratecnologia.com.br', '$2y$10$...hash...', 'Bruno Anderson', 'admin'),
-('brunoanderson1@gmail.com', '$2y$10$...hash...', 'Bruno Anderson', 'user');
+('admin@dominio.com.br', '$2a$12$Vf4jvuGHgbu7CRhEnCyhYOUMSsMwyDBPV9o3dV2qAoB7FJBFQFO7G', 'Administrador', 'admin'),
+('usuario@dominio.com', '$2a$12$Vf4jvuGHgbu7CRhEnCyhYOUMSsMwyDBPV9o3dV2qAoB7FJBFQFO7G', 'Usuario', 'user');
