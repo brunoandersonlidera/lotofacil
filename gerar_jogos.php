@@ -1,3 +1,4 @@
+<!-- gerar_jogos.php -->
 <?php
 require_once 'includes/db.php';
 require_once 'includes/auth.php';
@@ -14,7 +15,8 @@ if (!isLoggedIn()) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerar Jogos - Lotofácil</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <div class="container mt-5">
@@ -31,6 +33,7 @@ if (!isLoggedIn()) {
             <button type="submit" class="btn btn-primary">Gerar Apostas</button>
         </form>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/script.js"></script>
 </body>
 </html>
