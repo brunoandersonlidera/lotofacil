@@ -1,6 +1,155 @@
+/* Estilos gerais */
 body {
-    background-color: #f8f9fa;
+    background: linear-gradient(to bottom, #e0f7fa, #b2ebf2);
+    font-family: 'Arial', sans-serif;
 }
+
 .container {
-    max-width: 800px;
+    max-width: 1200px;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+/* Navbar personalizada */
+.navbar {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: #FF4444;
+}
+
+.nav-link.active {
+    color: #FF4444 !important;
+    font-weight: bold;
+}
+
+/* Seção de Temperatura */
+.temp-section {
+    margin: 20px 0;
+}
+
+.temp-title {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.temp-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.temp-number {
+    padding: 10px 15px;
+    border-radius: 25px;
+    color: white;
+    font-weight: bold;
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+}
+
+.temp-number.quente {
+    background: #FF4444;
+}
+
+.temp-number.morno {
+    background: #FFC107;
+}
+
+.temp-number.frio {
+    background: #42A5F5;
+}
+
+.temp-number.congelado {
+    background: #B0BEC5;
+}
+
+.temp-number.top-4 {
+    border: 3px solid #FFD700;
+    box-shadow: 0 0 10px #FFD700;
+}
+
+.temp-number:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Tabela de simulação */
+.temp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.temp-table th,
+.temp-table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.temp-table th {
+    background: #FF4444;
+    color: white;
+    font-size: 16px;
+}
+
+.temp-table td {
+    background: #fafafa;
+    transition: background 0.3s;
+}
+
+.temp-table tr:hover td {
+    background: #f0f0f0;
+}
+
+.prediction-span {
+    background: #FF8A65;
+    padding: 5px 10px;
+    border-radius: 15px;
+    margin: 2px;
+    display: inline-block;
+    color: white;
+}
+
+.result-span {
+    background: #4CAF50;
+    padding: 5px 10px;
+    border-radius: 15px;
+    margin: 2px;
+    display: inline-block;
+    color: white;
+}
+
+/* Botões */
+.btn-primary {
+    background-color: #FF4444;
+    border-color: #FF4444;
+    transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #e53935;
+    border-color: #e53935;
+}
+
+/* Cards no index */
+.card {
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Gráfico */
+#acertosChart {
+    margin-top: 20px;
 }
