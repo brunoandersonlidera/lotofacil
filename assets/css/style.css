@@ -283,3 +283,43 @@ h2, h3 {
         padding: 8px;
     }
 }
+
+.volante {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.numero {
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+.fixo {
+    background-color: red;
+    color: white;
+}
+.excluido {
+    background-color: blue;
+    color: white;
+}
+.toggle-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+}
+.toggle-btn.off {
+    background-color: #ccc;
+}
+.toggle-btn.on {
+    background-color: #28a745;
+    color: white;
+}
+.estrategias-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}

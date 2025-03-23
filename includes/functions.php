@@ -37,9 +37,15 @@ function gerarJogo($quantidadeNumeros, $numerosFixos, $numerosExcluidos, $estrat
     return $jogo;
 }
 
+<?php
 function getUltimoConcurso($pdo) {
-    $stmt = $pdo->query("SELECT MAX(concurso) as ultimo FROM resultados");
-    $result = $stmt->fetch();
-    return $result['ultimo'] ?? 0;
+    try {
+        $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? [$row['concurso'], json_decode($row['numeros'])] : [0, []];
+    } catch (Exception $e) {
+        error_log("Erro em getUltimoConcurso: " . $e->getMessage(), 3, __DIR__ . "/../erros.log");
+        return [0, []];
+    }
 }
 ?>

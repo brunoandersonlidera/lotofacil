@@ -153,3 +153,80 @@ function showMessage(message, type = 'info') {
     document.body.insertBefore(msgDiv, document.body.firstChild);
     setTimeout(() => msgDiv.remove(), 5000);
 }
+
+console.log('Script carregado');
+
+function toggleFixo(numero) {
+    console.log('Toggle fixo: ' + numero);
+    try {
+        const el = document.getElementById('fixo-' + numero);
+        if (el && !el.classList.contains('excluido')) {
+            el.classList.toggle('fixo');
+            updateNumeros('numeros_fixos', '.fixo');
+        }
+    } catch (e) {
+        console.error('Erro em toggleFixo: ' + e.message);
+    }
+}
+
+function toggleExcluido(numero) {
+    console.log('Toggle excluido: ' + numero);
+    try {
+        const el = document.getElementById('excluido-' + numero);
+        if (el && !el.classList.contains('fixo')) {
+            el.classList.toggle('excluido');
+            updateNumeros('numeros_excluidos', '.excluido');
+        }
+    } catch (e) {
+        console.error('Erro em toggleExcluido: ' + e.message);
+    }
+}
+
+function updateNumeros(inputId, selector) {
+    console.log('Atualizando ' + inputId);
+    try {
+        const nums = Array.from(document.querySelectorAll(selector)).map(el => el.textContent.trim());
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.value = nums.join(', ');
+            console.log(inputId + ' atualizado para: ' + input.value);
+        }
+    } catch (e) {
+        console.error('Erro em updateNumeros: ' + e.message);
+    }
+}
+
+function toggleEstrategia(estrategia) {
+    console.log('Toggle estrategia: ' + estrategia);
+    try {
+        const btn = document.getElementById('btn-' + estrategia);
+        const input = document.getElementById('estrategia-' + estrategia);
+        if (btn && input) {
+            if (btn.classList.contains('off')) {
+                btn.classList.remove('off');
+                btn.classList.add('on');
+                input.value = estrategia;
+            } else {
+                btn.classList.remove('on');
+                btn.classList.add('off');
+                input.value = '';
+            }
+            console.log('Estrategia ' + estrategia + ' agora é: ' + input.value);
+        }
+    } catch (e) {
+        console.error('Erro em toggleEstrategia: ' + e.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado');
+    try {
+        const gerarTab = document.getElementById('gerar-tab');
+        if (gerarTab) gerarTab.click(); // Ativa a aba "Gerar Jogos"
+        toggleEstrategia('frequencia');
+        toggleEstrategia('sequencias');
+        toggleEstrategia('soma');
+    } catch (e) {
+        console.error('Erro no DOMContentLoaded: ' + e.message);
+    }
+});
