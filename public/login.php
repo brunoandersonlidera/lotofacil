@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -11,9 +15,12 @@ if (isLoggedIn()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
+    echo "Username: $username, Password: $password<br>"; // Depuração
     $pdo = getDB();
+    echo "Conexão com banco OK<br>"; // Depuração
     
     if (login($username, $password, $pdo)) {
+        echo "Login bem-sucedido, redirecionando..."; // Depuração
         header('Location: index.php');
         exit;
     } else {
