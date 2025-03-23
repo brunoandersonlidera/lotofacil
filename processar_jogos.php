@@ -28,7 +28,7 @@ function get_ultimo_concurso($pdo) {
 function analisar_frequencia_ultimos_n($pdo, $n = 50) {
     try {
         $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT :limit");
-        $stmt->bindValue(':limit', (int)$n, PDO::PARAM_INT); // Forçar como inteiro
+        $stmt->bindValue(':limit', (int)$n, PDO::PARAM_INT);
         $stmt->execute();
         $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
         $todos_numeros = [];
@@ -134,28 +134,21 @@ function gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluido
     }
 
     while (count($jogo) < $quantidade_numeros && !empty($disponiveis)) {
-        $pares_atuais = count(array_intersect($jogo, PARES));
-        $alvo_pares = rand(7, 8);
-        if ($pares_atuais < $alvo_pares && count(array_intersect(PARES, $disponiveis)) > 0) {
-            $n = array_shift(array_values(array_intersect(PARES, $disponiveis)));
-        } elseif (count($jogo) - $pares_atuais < ($quantidade_numeros - $alvo_pares) && count(array_intersect(IMPARES, $disponiveis)) > 0) {
-            $n = array_shift(array_values(array_intersect(IMPARES, $disponiveis)));
-        } else {
-            $n = array_shift($disponiveis);
-        }
+        $n = array_shift($disponiveis);
         $jogo[] = $n;
-        $disponiveis = array_diff($disponiveis, [$n]);
     }
 
     sort($jogo);
     if (in_array('soma', $estrategias)) {
         $soma = array_sum($jogo);
-        while (($soma < 180 || $soma > 220) && !empty($disponiveis)) {
+        $tentativas = 0;
+        while (($soma < 180 || $soma > 220) && $tentativas < 10 && !empty($disponiveis)) {
             array_pop($jogo);
             $n = array_shift($disponiveis);
             $jogo[] = $n;
             sort($jogo);
             $soma = array_sum($jogo);
+            $tentativas++;
         }
     }
 
@@ -175,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $quantidade_jogos = filter_input(INPUT_POST, 'quantidade_jogos', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $numeros_fixos = !empty($_POST['numeros_fixos']) ? array_map('intval', explode(', ', $_POST['numeros_fixos'])) : [];
         $numeros_excluidos = !empty($_POST['numeros_excluidos']) ? array_map('intval', explode(', ', $_POST['numeros_excluidos'])) : [];
-        $estrategias = array_filter($_POST['estrategias']) ?: ['frequencia', 'sequencias', 'soma'];
+        $estrategias = array_filter($_POST['estrategias']) ?: ['frequencia']; // Padrão: 'frequencia'
 
         if ($quantidade_numeros === false || $quantidade_jogos === false) {
             throw new Exception("Quantidade inválida.");
@@ -188,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $jogos = [];
         $tentativas = 0;
-        $max_tentativas = $quantidade_jogos * 20;
+        $max_tentativas = $quantidade_jogos * 50; // Aumentado para mais flexibilidade
 
         if (in_array('desdobramento', $estrategias)) {
             $base = $numeros_fixos;

@@ -35,6 +35,16 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
     <title>Gerador Lotofácil</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .numero { cursor: pointer; display: inline-block; margin: 5px; padding: 5px; border: 1px solid #ccc; }
+        .fixo { background-color: red; color: white; }
+        .excluido { background-color: blue; color: white; }
+        .toggle-btn { cursor: pointer; padding: 5px 10px; }
+        .toggle-btn.off { background-color: #ccc; }
+        .toggle-btn.on { background-color: #28a745; color: white; }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -116,6 +126,7 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         function showTab(tabId) {
+            console.log('Showing tab: ' + tabId); // Debug
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
@@ -123,6 +134,7 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
         }
 
         function toggleFixo(numero) {
+            console.log('Toggling fixo: ' + numero); // Debug
             const el = document.getElementById('fixo-' + numero);
             if (!el.classList.contains('excluido')) {
                 el.classList.toggle('fixo');
@@ -131,6 +143,7 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
         }
 
         function toggleExcluido(numero) {
+            console.log('Toggling excluido: ' + numero); // Debug
             const el = document.getElementById('excluido-' + numero);
             if (!el.classList.contains('fixo')) {
                 el.classList.toggle('excluido');
@@ -141,9 +154,11 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
         function updateNumeros(inputId, selector) {
             const nums = Array.from(document.querySelectorAll(selector)).map(el => el.textContent.trim());
             document.getElementById(inputId).value = nums.join(', ');
+            console.log(inputId + ': ' + document.getElementById(inputId).value); // Debug
         }
 
         function toggleEstrategia(estrategia) {
+            console.log('Toggling estrategia: ' + estrategia); // Debug
             const btn = document.getElementById('btn-' + estrategia);
             const input = document.getElementById('estrategia-' + estrategia);
             if (btn.classList.contains('off')) {
@@ -155,9 +170,11 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
                 btn.classList.add('off');
                 input.value = '';
             }
+            console.log('Estrategia ' + estrategia + ': ' + input.value); // Debug
         }
 
         window.onload = () => {
+            console.log('Window loaded'); // Debug
             showTab('gerar');
             toggleEstrategia('frequencia');
             toggleEstrategia('sequencias');
