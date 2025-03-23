@@ -8,6 +8,84 @@ if (!isLoggedIn()) {
 }
 
 $pdo = getDB();
+
+// Funções auxiliares baseadas no Python
+function get_ultimo_concurso($pdo) {
+    $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row ? [$row['concurso'], json_decode($row['numeros'])] : [0, []];
+}
+
+function analisar_frequencia_ultimos_n($pdo, $n = 50) {
+    $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT ?");
+    $stmt->execute([$n]);
+    $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $todos_numeros = [];
+    foreach ($numeros as $n) {
+        $todos_numeros = array_merge($todos_numeros, json_decode($n));
+    }
+    return array_count_values($todos_numeros);
+}
+
+function analisar_frequencia_ate_concurso($pdo, $concurso, $n = 50) {
+    $stmt = $pdo->prepare("SELECT numeros FROM resultados WHERE concurso < ? ORDER BY concurso DESC LIMIT ?");
+    $stmt->execute([$concurso, $n]);
+    $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $todos_numeros = [];
+    foreach ($numeros as $n) {
+        $todos_numeros = array_merge($todos_numeros, json_decode($n));
+    }
+    return array_count_values($todos_numeros);
+}
+
+function numeros_atrasados($pdo, $n = 50) {
+    $freq = analisar_frequencia_ultimos_n($pdo, $n);
+    return array_diff(range(1, 25), array_keys($freq));
+}
+
+function get_temperatura_numeros($pdo) {
+    $freq = analisar_frequencia_ultimos_n($pdo, 50);
+    arsort($freq);
+    $sorted_freq = array_keys($freq);
+    $quentes = array_slice($sorted_freq, 0, 12);
+    $mornos = array_slice($sorted_freq, 12, 6);
+    $frios = array_slice($sorted_freq, 18, 5);
+    $congelados = array_diff(range(1, 25), array_keys($freq));
+    $quatro_mais_quentes = array_slice($sorted_freq, 0, 4);
+    return [
+        'quentes' => $quentes,
+        'mornos' => $mornos,
+        'frios' => $frios,
+        'congelados' => $congelados,
+        'quatro_mais_quentes' => $quatro_mais_quentes,
+        'frequencias' => array_merge(array_fill(1, 25, 0), $freq)
+    ];
+}
+
+function simular_previsoes_ultimos_20($pdo) {
+    $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 20");
+    $ultimos_20 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $simulacao = [];
+    foreach ($ultimos_20 as $row) {
+        $concurso = $row['concurso'];
+        $resultado = json_decode($row['numeros']);
+        $freq = analisar_frequencia_ate_concurso($pdo, $concurso);
+        arsort($freq);
+        $previsao = array_slice(array_keys($freq), 0, 15);
+        $acertos = count(array_intersect($previsao, $resultado));
+        $simulacao[] = [
+            'concurso' => $concurso,
+            'previsao' => $previsao,
+            'resultado' => $resultado,
+            'acertos' => $acertos
+        ];
+    }
+    return array_reverse($simulacao); // Ordem crescente
+}
+
+list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
+$temperatura = get_temperatura_numeros($pdo);
+$simulacao = simular_previsoes_ultimos_20($pdo);
 ?>
 
 <!DOCTYPE html>
@@ -32,115 +110,130 @@ $pdo = getDB();
         <div id="gerar" class="tab-content active">
             <h2>Gerar Jogos</h2>
             <form action="processar_jogos.php" method="POST">
-                <div class="mb-3">
-                    <label for="quantidade_numeros" class="form-label">Quantidade de Números (15-20):</label>
-                    <input type="number" class="form-control" id="quantidade_numeros" name="quantidade_numeros" min="15" max="20" value="15" required>
+                <label>Quantidade de Números por Jogo (15-20):</label>
+                <input type="number" name="quantidade_numeros" min="15" max="20" value="15" required>
+                <label>Quantidade de Jogos:</label>
+                <input type="number" name="quantidade_jogos" min="1" value="10" required>
+                <label>Números Fixos (vermelho):</label>
+                <div class="volante">
+                    <?php for ($i = 1; $i <= 25; $i++): ?>
+                        <div id="fixo-<?= $i ?>" class="numero" onclick="toggleFixo(<?= $i ?>)"><?= $i ?></div>
+                    <?php endfor; ?>
                 </div>
-                <div class="mb-3">
-                    <label for="quantidade_jogos" class="form-label">Quantidade de Jogos:</label>
-                    <input type="number" class="form-control" id="quantidade_jogos" name="quantidade_jogos" min="1" value="1" required>
+                <input type="hidden" id="numeros_fixos" name="numeros_fixos">
+                <label>Números Excluídos (azul):</label>
+                <div class="volante">
+                    <?php for ($i = 1; $i <= 25; $i++): ?>
+                        <div id="excluido-<?= $i ?>" class="numero" onclick="toggleExcluido(<?= $i ?>)"><?= $i ?></div>
+                    <?php endfor; ?>
                 </div>
-                <div class="mb-3">
-                    <label>Números Fixos (vermelho):</label>
-                    <div class="volante">
-                        <?php for ($i = 1; $i <= 25; $i++): ?>
-                            <div id="fixo-<?= $i ?>" class="numero" onclick="toggleFixo(<?= $i ?>)"><?= $i ?></div>
-                        <?php endfor; ?>
-                    </div>
-                    <input type="hidden" id="numeros_fixos" name="numeros_fixos">
-                </div>
-                <div class="mb-3">
-                    <label>Números Excluídos (azul):</label>
-                    <div class="volante">
-                        <?php for ($i = 1; $i <= 25; $i++): ?>
-                            <div id="excluido-<?= $i ?>" class="numero" onclick="toggleExcluido(<?= $i ?>)"><?= $i ?></div>
-                        <?php endfor; ?>
-                    </div>
-                    <input type="hidden" id="numeros_excluidos" name="numeros_excluidos">
-                </div>
-                <div class="mb-3">
-                    <label>Estratégias:</label><br>
-                    <?php $estrategias = ['frequencia', 'primos', 'repeticao', 'sequencias', 'atrasados', 'soma', 'desdobramento']; ?>
-                    <?php foreach ($estrategias as $estrategia): ?>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" name="estrategias[]" value="<?= $estrategia ?>" id="<?= $estrategia ?>" <?= $estrategia === 'frequencia' ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="<?= $estrategia ?>"><?= ucfirst($estrategia) ?></label>
+                <input type="hidden" id="numeros_excluidos" name="numeros_excluidos">
+                <label>Estratégias:</label>
+                <div class="estrategias-grid">
+                    <?php
+                    $estrategias = [
+                        'frequencia' => 'Usa os 10-12 números mais sorteados nos últimos 50 concursos.',
+                        'primos' => 'Inclui 3 a 5 números primos no jogo.',
+                        'repeticao' => 'Reutiliza 6 a 9 números do último sorteio.',
+                        'sequencias' => 'Inclui trio comum (20-21-22 ou 23-24-25).',
+                        'atrasados' => 'Inclui 1 a 2 números não sorteados nos últimos 50 concursos.',
+                        'soma' => 'Ajusta os números para soma entre 180 e 220.',
+                        'desdobramento' => 'Gera jogos a partir de 18 dezenas baseadas em frequência.',
+                        'clustering' => 'Prioriza números de zonas quentes baseadas nos últimos sorteios.'
+                    ];
+                    foreach ($estrategias as $estrategia => $tooltip): ?>
+                        <div>
+                            <button type="button" id="btn-<?= $estrategia ?>" class="toggle-btn off" onclick="toggleEstrategia('<?= $estrategia ?>')">
+                                <?= ucfirst($estrategia) ?>
+                                <span class="tooltip"><?= $tooltip ?></span>
+                            </button>
+                            <input type="hidden" id="estrategia-<?= $estrategia ?>" name="estrategias[]" value="">
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <button type="submit" class="btn btn-primary">Gerar Apostas</button>
+                <button type="submit" class="submit-btn">Gerar Apostas</button>
             </form>
         </div>
 
         <!-- Tab: Temperatura dos Números -->
         <div id="temperatura" class="tab-content">
             <h2>Temperatura dos Números</h2>
-            <?php
-            $stmt = $pdo->query("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT 50");
-            $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            $todos_numeros = [];
-            foreach ($numeros as $n) {
-                $todos_numeros = array_merge($todos_numeros, json_decode($n));
-            }
-            $freq = array_count_values($todos_numeros);
-            arsort($freq);
-            $quentes = array_slice(array_keys($freq), 0, 12, true);
-            $mornos = array_slice(array_keys($freq), 12, 6, true);
-            $frios = array_slice(array_keys($freq), 18, 5, true);
-            $congelados = array_diff(range(1, 25), array_keys($freq));
-            ?>
             <div class="temp-section">
                 <div class="temp-title">🔥 Quentes (12 mais frequentes)</div>
                 <div class="temp-numbers">
-                    <?php foreach ($quentes as $n): ?>
-                        <span class="temp-number quente" onclick="alert('Frequência do número <?= $n ?>: <?= $freq[$n] ?> vezes')"><?= $n ?></span>
+                    <?php foreach ($temperatura['quentes'] as $num): ?>
+                        <span class="temp-number quente <?= in_array($num, $temperatura['quatro_mais_quentes']) ? 'top-4' : '' ?>" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
                     <?php endforeach; ?>
                 </div>
             </div>
             <div class="temp-section">
                 <div class="temp-title">🌞 Mornos (13º ao 18º)</div>
                 <div class="temp-numbers">
-                    <?php foreach ($mornos as $n): ?>
-                        <span class="temp-number morno" onclick="alert('Frequência do número <?= $n ?>: <?= $freq[$n] ?> vezes')"><?= $n ?></span>
+                    <?php foreach ($temperatura['mornos'] as $num): ?>
+                        <span class="temp-number morno" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
                     <?php endforeach; ?>
                 </div>
             </div>
             <div class="temp-section">
                 <div class="temp-title">❄️ Frios (19º ao 23º)</div>
                 <div class="temp-numbers">
-                    <?php foreach ($frios as $n): ?>
-                        <span class="temp-number frio" onclick="alert('Frequência do número <?= $n ?>: <?= $freq[$n] ?> vezes')"><?= $n ?></span>
+                    <?php foreach ($temperatura['frios'] as $num): ?>
+                        <span class="temp-number frio" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
                     <?php endforeach; ?>
                 </div>
             </div>
             <div class="temp-section">
                 <div class="temp-title">🧊 Congelados (menos frequentes)</div>
                 <div class="temp-numbers">
-                    <?php foreach ($congelados as $n): ?>
-                        <span class="temp-number congelado" onclick="alert('Número <?= $n ?> não apareceu nos últimos 50 concursos')"><?= $n ?></span>
+                    <?php foreach ($temperatura['congelados'] as $num): ?>
+                        <span class="temp-number congelado" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
                     <?php endforeach; ?>
                 </div>
             </div>
+            <h3 style="color: #FF4444; text-align: center; margin-top: 30px;">Simulação dos Últimos 20 Concursos</h3>
+            <table class="temp-table">
+                <tr>
+                    <th>Concurso</th>
+                    <th>Previsão</th>
+                    <th>Resultado</th>
+                    <th>Acertos</th>
+                </tr>
+                <?php foreach ($simulacao as $sim): ?>
+                    <tr>
+                        <td><?= $sim['concurso'] ?></td>
+                        <td>
+                            <?php foreach ($sim['previsao'] as $num): ?>
+                                <span class="prediction-span"><?= $num ?></span>
+                            <?php endforeach; ?>
+                        </td>
+                        <td>
+                            <?php foreach ($sim['resultado'] as $num): ?>
+                                <span class="result-span"><?= $num ?></span>
+                            <?php endforeach; ?>
+                        </td>
+                        <td><?= $sim['acertos'] ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+            <h3 style="color: #FF4444; text-align: center; margin-top: 30px;">Estatísticas de Acertos</h3>
+            <canvas id="acertosChart" width="400" height="200"></canvas>
         </div>
 
         <!-- Tab: Adicionar Resultado -->
         <div id="adicionar" class="tab-content">
             <h2>Adicionar Resultado</h2>
             <form action="adicionar_resultado.php" method="POST">
-                <div class="mb-3">
-                    <label for="concurso" class="form-label">Concurso:</label>
-                    <input type="number" class="form-control" id="concurso" name="concurso" required>
-                </div>
-                <div class="mb-3">
-                    <label for="numeros" class="form-label">Números (15, separados por vírgula):</label>
-                    <input type="text" class="form-control" id="numeros" name="numeros" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Adicionar</button>
+                <label>Concurso:</label>
+                <input type="number" name="concurso" required>
+                <label>Números (15, separados por vírgula):</label>
+                <input type="text" name="numeros" required>
+                <button type="submit" class="submit-btn">Adicionar</button>
             </form>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -167,11 +260,65 @@ $pdo = getDB();
 
         function updateNumeros(inputId, selector) {
             const nums = Array.from(document.querySelectorAll(selector)).map(el => el.textContent.trim());
-            document.getElementById(inputId).value = nums.join(',');
+            document.getElementById(inputId).value = nums.join(', ');
+        }
+
+        function toggleEstrategia(estrategia) {
+            const btn = document.getElementById('btn-' + estrategia);
+            const input = document.getElementById('estrategia-' + estrategia);
+            if (btn.classList.contains('off')) {
+                btn.classList.remove('off');
+                btn.classList.add('on');
+                input.value = estrategia;
+            } else {
+                btn.classList.remove('on');
+                btn.classList.add('off');
+                input.value = '';
+            }
+        }
+
+        function showFreq(numero) {
+            const freqs = <?php echo json_encode($temperatura['frequencias']); ?>;
+            alert(`Frequência do número ${numero}: ${freqs[numero]} vezes nos últimos 50 concursos`);
         }
 
         window.onload = () => {
             showTab('gerar');
+            toggleEstrategia('frequencia');
+            toggleEstrategia('sequencias');
+            toggleEstrategia('soma');
+
+            const ctx = document.getElementById('acertosChart').getContext('2d');
+            const simulacao = <?php echo json_encode($simulacao); ?>;
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: simulacao.map(s => s.concurso),
+                    datasets: [{
+                        label: 'Número de Acertos',
+                        data: simulacao.map(s => s.acertos),
+                        borderColor: '#FF4444',
+                        backgroundColor: 'rgba(255, 68, 68, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, max: 15, title: { display: true, text: 'Acertos' } },
+                        x: { title: { display: true, text: 'Concurso' } }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Acertos: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         };
     </script>
 </body>

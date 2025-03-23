@@ -44,7 +44,7 @@ body {
     display: block;
 }
 
-/* Estilização do volante */
+/* Volante */
 .volante {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -73,7 +73,6 @@ body {
 }
 
 /* Botões */
-.btn-primary,
 .submit-btn {
     background: #FF4444;
     color: white;
@@ -86,72 +85,59 @@ body {
     width: 100%;
 }
 
-.btn-primary:hover,
 .submit-btn:hover {
     background: #e53935;
 }
 
-.btn-sm.btn-primary {
-    width: auto;
+/* Estratégias */
+.estrategias-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 10px 0;
 }
 
-.btn-success {
-    background: #4CAF50;
-    color: white;
-    padding: 6px 12px;
+.toggle-btn {
+    padding: 12px;
+    text-align: center;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background 0.3s;
-}
-
-.btn-success:hover {
-    background: #45a049;
-}
-
-/* Tabela */
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-.table th,
-.table td {
-    padding: 12px;
-    text-align: center;
-    border: 1px solid #ddd;
-}
-
-.table th {
-    background: #FF4444;
-    color: white;
-    font-size: 16px;
-}
-
-.table td {
-    background: #fafafa;
-    transition: background 0.3s;
-}
-
-.table tr:hover td {
-    background: #f0f0f0;
-}
-
-/* Labels e Inputs */
-label {
-    display: block;
-    margin: 10px 0 5px;
+    position: relative;
     font-weight: bold;
+    transition: all 0.3s;
 }
 
-input[type="number"],
-input[type="text"] {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
+.toggle-btn.off {
+    background: #ccc;
+    color: #333;
+}
+
+.toggle-btn.on {
+    background: #4444FF;
+    color: white;
+}
+
+.toggle-btn:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltip {
+    visibility: hidden;
+    width: 220px;
+    background: #333;
+    color: white;
+    text-align: center;
     border-radius: 5px;
-    border: 1px solid #ddd;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
 }
 
 /* Temperatura dos Números */
@@ -180,11 +166,6 @@ input[type="text"] {
     cursor: pointer;
 }
 
-.temp-number:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
 .temp-number.quente {
     background: #FF4444;
 }
@@ -201,23 +182,104 @@ input[type="text"] {
     background: #B0BEC5;
 }
 
-/* Ajustes para responsividade */
+.temp-number.top-4 {
+    border: 3px solid #FFD700;
+    box-shadow: 0 0 10px #FFD700;
+}
+
+.temp-number:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Tabela de Simulação */
+.temp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.temp-table th, .temp-table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.temp-table th {
+    background: #FF4444;
+    color: white;
+    font-size: 16px;
+}
+
+.temp-table td {
+    background: #fafafa;
+    transition: background 0.3s;
+}
+
+.temp-table tr:hover td {
+    background: #f0f0f0;
+}
+
+.prediction-span {
+    background: #FF8A65;
+    padding: 5px 10px;
+    border-radius: 15px;
+    margin: 2px;
+    display: inline-block;
+}
+
+.result-span {
+    background: #4CAF50;
+    padding: 5px 10px;
+    border-radius: 15px;
+    margin: 2px;
+    display: inline-block;
+}
+
+/* Gráfico */
+#acertosChart {
+    margin-top: 20px;
+}
+
+/* Labels e Inputs */
+label {
+    display: block;
+    margin: 10px 0 5px;
+    font-weight: bold;
+}
+
+input[type="number"],
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+h2, h3 {
+    color: #FF4444;
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+/* Responsividade */
 @media (max-width: 768px) {
     .volante {
         grid-template-columns: repeat(3, 1fr);
     }
-    
-    .table th,
-    .table td {
-        font-size: 14px;
-        padding: 8px;
+    .estrategias-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
-
     .tabs {
         flex-direction: column;
     }
-
     .tab {
         padding: 10px;
+    }
+    .temp-table th, .temp-table td {
+        font-size: 14px;
+        padding: 8px;
     }
 }
