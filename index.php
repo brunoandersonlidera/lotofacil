@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require_once 'includes/db.php';
 require_once 'includes/auth.php';
 
@@ -9,42 +13,52 @@ if (!isLoggedIn()) {
 
 $pdo = getDB();
 
-// Funções auxiliares baseadas no Python
 function get_ultimo_concurso($pdo) {
-    $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return $row ? [$row['concurso'], json_decode($row['numeros'])] : [0, []];
+    try {
+        $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? [$row['concurso'], json_decode($row['numeros'])] : [0, []];
+    } catch (Exception $e) {
+        error_log("Erro em get_ultimo_concurso: " . $e->getMessage(), 3, "erros.log");
+        return [0, []];
+    }
 }
 
 function analisar_frequencia_ultimos_n($pdo, $n = 50) {
-    $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT ?");
-    $stmt->execute([$n]);
-    $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    $todos_numeros = [];
-    foreach ($numeros as $n) {
-        $todos_numeros = array_merge($todos_numeros, json_decode($n));
+    try {
+        $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT ?");
+        $stmt->execute([$n]);
+        $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $todos_numeros = [];
+        foreach ($numeros as $n) {
+            $todos_numeros = array_merge($todos_numeros, json_decode($n));
+        }
+        return array_count_values($todos_numeros);
+    } catch (Exception $e) {
+        error_log("Erro em analisar_frequencia_ultimos_n: " . $e->getMessage(), 3, "erros.log");
+        return [];
     }
-    return array_count_values($todos_numeros);
 }
 
 function analisar_frequencia_ate_concurso($pdo, $concurso, $n = 50) {
-    $stmt = $pdo->prepare("SELECT numeros FROM resultados WHERE concurso < ? ORDER BY concurso DESC LIMIT ?");
-    $stmt->execute([$concurso, $n]);
-    $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    $todos_numeros = [];
-    foreach ($numeros as $n) {
-        $todos_numeros = array_merge($todos_numeros, json_decode($n));
+    try {
+        $stmt = $pdo->prepare("SELECT numeros FROM resultados WHERE concurso < ? ORDER BY concurso DESC LIMIT ?");
+        $stmt->execute([$concurso, $n]);
+        $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $todos_numeros = [];
+        foreach ($numeros as $n) {
+            $todos_numeros = array_merge($todos_numeros, json_decode($n));
+        }
+        return array_count_values($todos_numeros);
+    } catch (Exception $e) {
+        error_log("Erro em analisar_frequencia_ate_concurso: " . $e->getMessage(), 3, "erros.log");
+        return [];
     }
-    return array_count_values($todos_numeros);
-}
-
-function numeros_atrasados($pdo, $n = 50) {
-    $freq = analisar_frequencia_ultimos_n($pdo, $n);
-    return array_diff(range(1, 25), array_keys($freq));
 }
 
 function get_temperatura_numeros($pdo) {
     $freq = analisar_frequencia_ultimos_n($pdo, 50);
+    if (empty($freq)) return ['quentes' => [], 'mornos' => [], 'frios' => [], 'congelados' => range(1, 25), 'quatro_mais_quentes' => [], 'frequencias' => array_fill(1, 25, 0)];
     arsort($freq);
     $sorted_freq = array_keys($freq);
     $quentes = array_slice($sorted_freq, 0, 12);
@@ -63,24 +77,29 @@ function get_temperatura_numeros($pdo) {
 }
 
 function simular_previsoes_ultimos_20($pdo) {
-    $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 20");
-    $ultimos_20 = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $simulacao = [];
-    foreach ($ultimos_20 as $row) {
-        $concurso = $row['concurso'];
-        $resultado = json_decode($row['numeros']);
-        $freq = analisar_frequencia_ate_concurso($pdo, $concurso);
-        arsort($freq);
-        $previsao = array_slice(array_keys($freq), 0, 15);
-        $acertos = count(array_intersect($previsao, $resultado));
-        $simulacao[] = [
-            'concurso' => $concurso,
-            'previsao' => $previsao,
-            'resultado' => $resultado,
-            'acertos' => $acertos
-        ];
+    try {
+        $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 20");
+        $ultimos_20 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $simulacao = [];
+        foreach ($ultimos_20 as $row) {
+            $concurso = $row['concurso'];
+            $resultado = json_decode($row['numeros']);
+            $freq = analisar_frequencia_ate_concurso($pdo, $concurso);
+            arsort($freq);
+            $previsao = array_slice(array_keys($freq), 0, 15);
+            $acertos = count(array_intersect($previsao, $resultado));
+            $simulacao[] = [
+                'concurso' => $concurso,
+                'previsao' => $previsao,
+                'resultado' => $resultado,
+                'acertos' => $acertos
+            ];
+        }
+        return array_reverse($simulacao);
+    } catch (Exception $e) {
+        error_log("Erro em simular_previsoes_ultimos_20: " . $e->getMessage(), 3, "erros.log");
+        return [];
     }
-    return array_reverse($simulacao); // Ordem crescente
 }
 
 list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
@@ -190,33 +209,37 @@ $simulacao = simular_previsoes_ultimos_20($pdo);
                     <?php endforeach; ?>
                 </div>
             </div>
-            <h3 style="color: #FF4444; text-align: center; margin-top: 30px;">Simulação dos Últimos 20 Concursos</h3>
-            <table class="temp-table">
-                <tr>
-                    <th>Concurso</th>
-                    <th>Previsão</th>
-                    <th>Resultado</th>
-                    <th>Acertos</th>
-                </tr>
-                <?php foreach ($simulacao as $sim): ?>
+            <?php if (!empty($simulacao)): ?>
+                <h3 style="color: #FF4444; text-align: center; margin-top: 30px;">Simulação dos Últimos 20 Concursos</h3>
+                <table class="temp-table">
                     <tr>
-                        <td><?= $sim['concurso'] ?></td>
-                        <td>
-                            <?php foreach ($sim['previsao'] as $num): ?>
-                                <span class="prediction-span"><?= $num ?></span>
-                            <?php endforeach; ?>
-                        </td>
-                        <td>
-                            <?php foreach ($sim['resultado'] as $num): ?>
-                                <span class="result-span"><?= $num ?></span>
-                            <?php endforeach; ?>
-                        </td>
-                        <td><?= $sim['acertos'] ?></td>
+                        <th>Concurso</th>
+                        <th>Previsão</th>
+                        <th>Resultado</th>
+                        <th>Acertos</th>
                     </tr>
-                <?php endforeach; ?>
-            </table>
-            <h3 style="color: #FF4444; text-align: center; margin-top: 30px;">Estatísticas de Acertos</h3>
-            <canvas id="acertosChart" width="400" height="200"></canvas>
+                    <?php foreach ($simulacao as $sim): ?>
+                        <tr>
+                            <td><?= $sim['concurso'] ?></td>
+                            <td>
+                                <?php foreach ($sim['previsao'] as $num): ?>
+                                    <span class="prediction-span"><?= $num ?></span>
+                                <?php endforeach; ?>
+                            </td>
+                            <td>
+                                <?php foreach ($sim['resultado'] as $num): ?>
+                                    <span class="result-span"><?= $num ?></span>
+                                <?php endforeach; ?>
+                            </td>
+                            <td><?= $sim['acertos'] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </table>
+                <h3 style="color: #FF4444; text-align: center; margin-top: 30px;">Estatísticas de Acertos</h3>
+                <canvas id="acertosChart" width="400" height="200"></canvas>
+            <?php else: ?>
+                <p style="text-align: center; color: #FF4444;">Nenhum dado disponível para simulação.</p>
+            <?php endif; ?>
         </div>
 
         <!-- Tab: Adicionar Resultado -->
@@ -288,6 +311,7 @@ $simulacao = simular_previsoes_ultimos_20($pdo);
             toggleEstrategia('sequencias');
             toggleEstrategia('soma');
 
+            <?php if (!empty($simulacao)): ?>
             const ctx = document.getElementById('acertosChart').getContext('2d');
             const simulacao = <?php echo json_encode($simulacao); ?>;
             const chart = new Chart(ctx, {
@@ -319,6 +343,7 @@ $simulacao = simular_previsoes_ultimos_20($pdo);
                     }
                 }
             });
+            <?php endif; ?>
         };
     </script>
 </body>
