@@ -244,31 +244,36 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
             <h2>Jogos Gerados</h2>
             <?php
             try {
-                $stmt = $pdo->prepare("SELECT lote_id, concurso, jogos, pdf_path, txt_path FROM jogos_gerados WHERE user_id = ? ORDER BY lote_id DESC");
+                $stmt = $pdo->prepare("SELECT lote_id, data_hora, concurso, pdf_path, txt_path FROM jogos_gerados WHERE user_id = ? ORDER BY data_hora DESC");
                 $stmt->execute([$_SESSION['user_id']]);
                 $jogos_gerados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 if ($jogos_gerados) {
                     echo '<table style="width: 100%; border-collapse: collapse;">';
-                    echo '<thead><tr><th style="border: 1px solid #ccc; padding: 5px;">Lote</th><th style="border: 1px solid #ccc; padding: 5px;">Concurso</th><th style="border: 1px solid #ccc; padding: 5px;">Jogos</th><th style="border: 1px solid #ccc; padding: 5px;">Downloads</th></tr></thead>';
+                    echo '<thead><tr><th style="border: 1px solid #ccc; padding: 5px;">ID do Lote</th><th style="border: 1px solid #ccc; padding: 5px;">Data e Hora</th><th style="border: 1px solid #ccc; padding: 5px;">Concurso</th><th style="border: 1px solid #ccc; padding: 5px;">Download PDF</th><th style="border: 1px solid #ccc; padding: 5px;">Download TXT</th><th style="border: 1px solid #ccc; padding: 5px;">Resultados</th></tr></thead>';
                     echo '<tbody>';
                     foreach ($jogos_gerados as $jogo) {
-                        $jogos = json_decode($jogo['jogos'], true);
+                        $data_hora = date('d/m/Y H:i:s', strtotime($jogo['data_hora']));
+                        // Verificar se o resultado do concurso existe
+                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM resultados WHERE concurso = ?");
+                        $stmt->execute([$jogo['concurso']]);
+                        $resultado_existe = $stmt->fetchColumn() > 0;
                         echo '<tr>';
                         echo '<td style="border: 1px solid #ccc; padding: 5px;">' . htmlspecialchars($jogo['lote_id']) . '</td>';
+                        echo '<td style="border: 1px solid #ccc; padding: 5px;">' . htmlspecialchars($data_hora) . '</td>';
                         echo '<td style="border: 1px solid #ccc; padding: 5px;">' . htmlspecialchars($jogo['concurso']) . '</td>';
                         echo '<td style="border: 1px solid #ccc; padding: 5px;">';
-                        foreach ($jogos as $index => $numeros) {
-                            echo sprintf("Jogo %02d: %s<br>", $index + 1, implode(', ', $numeros));
+                        if (file_exists($jogo['pdf_path'])) {
+                            echo '<a href="' . htmlspecialchars($jogo['pdf_path']) . '" download>PDF</a>';
                         }
                         echo '</td>';
                         echo '<td style="border: 1px solid #ccc; padding: 5px;">';
-                        if (file_exists($jogo['pdf_path'])) {
-                            echo '<a href="' . htmlspecialchars($jogo['pdf_path']) . '" download>PDF</a> ';
-                        }
                         if (file_exists($jogo['txt_path'])) {
                             echo '<a href="' . htmlspecialchars($jogo['txt_path']) . '" download>TXT</a>';
                         }
+                        echo '</td>';
+                        echo '<td style="border: 1px solid #ccc; padding: 5px;">';
+                        echo '<button class="result-btn" onclick="verResultados(\'' . $jogo['lote_id'] . '\', ' . $jogo['concurso'] . ')"' . ($resultado_existe ? '' : ' disabled') . '>Ver Resultados</button>';
                         echo '</td>';
                         echo '</tr>';
                     }
@@ -282,5 +287,25 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
             ?>
         </div>
     </div>
+    
+    <script>
+function verResultados(lote_id, concurso) {
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', 'conferir.php', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            alert('Acertos:\n' + xhr.responseText.replace(/<br>/g, '\n'));
+        } else {
+            alert('Erro ao conferir resultados: ' + xhr.statusText);
+        }
+    };
+    xhr.onerror = function() {
+        alert('Erro na requisição');
+    };
+    xhr.send('lote_id=' + encodeURIComponent(lote_id) + '&concurso=' + encodeURIComponent(concurso));
+}
+</script>
+
 </body>
 </html>
