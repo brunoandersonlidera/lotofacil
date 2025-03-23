@@ -5,21 +5,20 @@ function isLoggedIn() {
     return isset($_SESSION['user_id']);
 }
 
-function isAdmin() {
-    return isLoggedIn() && $_SESSION['perfil'] === 'admin';
+function login($username, $password, $pdo) {
+    $stmt = $pdo->prepare("SELECT id, password FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($user && password_verify($password, $user['password'])) {
+        $_SESSION['user_id'] = $user['id'];
+        return true;
+    }
+    return false;
 }
 
-function requireLogin() {
-    if (!isLoggedIn()) {
-        header('Location: ' . BASE_URL . '/login.php');
-        exit;
-    }
+function logout() {
+    session_destroy();
+    header('Location: login.php');
+    exit;
 }
-
-function requireAdmin() {
-    if (!isAdmin()) {
-        header('Location: ' . BASE_URL . '/index.php');
-        exit;
-    }
-}
-?>
