@@ -14,7 +14,8 @@ define('IMPARES', [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]);
 define('TRIOS_COMUNS', [[20, 21, 22], [23, 24, 25]]);
 define('TABELA_PRECOS', [15 => 3.00, 16 => 48.00, 17 => 408.00, 18 => 2448.00, 19 => 11628.00, 20 => 38760.00]);
 
-function get_ultimo_concurso($pdo) {
+function get_ultimo_concurso($pdo)
+{
     try {
         $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -25,7 +26,8 @@ function get_ultimo_concurso($pdo) {
     }
 }
 
-function analisar_frequencia_ultimos_n($pdo, $n = 50) {
+function analisar_frequencia_ultimos_n($pdo, $n = 50)
+{
     try {
         $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT :limit");
         $stmt->bindValue(':limit', (int)$n, PDO::PARAM_INT);
@@ -47,12 +49,14 @@ function analisar_frequencia_ultimos_n($pdo, $n = 50) {
     }
 }
 
-function numeros_atrasados($pdo, $n = 50) {
+function numeros_atrasados($pdo, $n = 50)
+{
     $freq = analisar_frequencia_ultimos_n($pdo, $n);
     return array_diff(range(1, 25), array_keys($freq));
 }
 
-function gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluidos, $estrategias, $jogos_anteriores, $ultimo_sorteio) {
+function gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluidos, $estrategias, $jogos_anteriores, $ultimo_sorteio)
+{
     $jogo = $numeros_fixos;
     $disponiveis = array_diff(range(1, 25), $numeros_excluidos, $jogo);
     shuffle($disponiveis);
@@ -119,7 +123,7 @@ function gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluido
 
     if (in_array('clustering', $estrategias)) {
         $zonas = array_chunk(range(1, 25), 5);
-        $freq_por_zona = array_map(function($zona) use ($freq_dezenas) {
+        $freq_por_zona = array_map(function ($zona) use ($freq_dezenas) {
             return array_sum(array_map(fn($n) => $freq_dezenas[$n] ?? 0, $zona));
         }, $zonas);
         array_multisort($freq_por_zona, SORT_DESC, $zonas);
@@ -176,7 +180,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo = getDB();
         $stmt = $pdo->query("SELECT numeros FROM resultados");
-        $jogos_anteriores = array_map(function($n) { return json_decode($n); }, $stmt->fetchAll(PDO::FETCH_COLUMN));
+        $jogos_anteriores = array_map(function ($n) {
+            return json_decode($n);
+        }, $stmt->fetchAll(PDO::FETCH_COLUMN));
         list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
 
         $jogos = [];
@@ -257,4 +263,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-?>

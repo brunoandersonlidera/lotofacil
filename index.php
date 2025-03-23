@@ -13,7 +13,8 @@ if (!isLoggedIn()) {
 
 $pdo = getDB();
 
-function get_ultimo_concurso($pdo) {
+function get_ultimo_concurso($pdo)
+{
     try {
         $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -29,24 +30,99 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
 
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerador Lotofácil</title>
     <style>
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab { cursor: pointer; padding: 10px; background-color: #f0f0f0; }
-        .tab.active { background-color: #007bff; color: white; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .numero { cursor: pointer; display: inline-block; margin: 5px; padding: 5px; border: 1px solid #ccc; }
-        .fixo { background-color: red; color: white; }
-        .excluido { background-color: blue; color: white; }
-        .toggle-btn { cursor: pointer; padding: 5px 10px; border: none; }
-        .toggle-btn.off { background-color: #ccc; }
-        .toggle-btn.on { background-color: #28a745; color: white; }
-        .estrategias-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-        .submit-btn { margin-top: 20px; padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            cursor: pointer;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .numero {
+            cursor: pointer;
+            display: inline-block;
+            margin: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .fixo {
+            background-color: red;
+            color: white;
+        }
+
+        .excluido {
+            background-color: blue;
+            color: white;
+        }
+
+        .toggle-btn {
+            cursor: pointer;
+            padding: 5px 10px;
+            border: none;
+        }
+
+        .toggle-btn.off {
+            background-color: #ccc;
+        }
+
+        .toggle-btn.on {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .estrategias-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .submit-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .result-btn {
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+        }
+
+        .result-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            background-color: #ccc;
+        }
     </style>
     <script defer>
         console.log('Script carregado no head');
@@ -158,6 +234,7 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
         });
     </script>
 </head>
+
 <body>
     <div class="container">
         <div class="tabs">
@@ -244,23 +321,30 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
             <h2>Jogos Gerados</h2>
             <?php
             try {
-                $stmt = $pdo->prepare("SELECT lote_id, data_hora, concurso, pdf_path, txt_path FROM jogos_gerados WHERE user_id = ? ORDER BY data_hora DESC");
+                $stmt = $pdo->prepare("SELECT lote_id, data_geracao, concurso, pdf_path, txt_path FROM jogos_gerados WHERE user_id = ? ORDER BY data_geracao DESC");
                 $stmt->execute([$_SESSION['user_id']]);
                 $jogos_gerados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 if ($jogos_gerados) {
                     echo '<table style="width: 100%; border-collapse: collapse;">';
-                    echo '<thead><tr><th style="border: 1px solid #ccc; padding: 5px;">ID do Lote</th><th style="border: 1px solid #ccc; padding: 5px;">Data e Hora</th><th style="border: 1px solid #ccc; padding: 5px;">Concurso</th><th style="border: 1px solid #ccc; padding: 5px;">Download PDF</th><th style="border: 1px solid #ccc; padding: 5px;">Download TXT</th><th style="border: 1px solid #ccc; padding: 5px;">Resultados</th></tr></thead>';
+                    echo '<thead><tr>';
+                    echo '<th style="border: 1px solid #ccc; padding: 5px;">ID do Lote</th>';
+                    echo '<th style="border: 1px solid #ccc; padding: 5px;">Data e Hora</th>';
+                    echo '<th style="border: 1px solid #ccc; padding: 5px;">Concurso</th>';
+                    echo '<th style="border: 1px solid #ccc; padding: 5px;">Download PDF</th>';
+                    echo '<th style="border: 1px solid #ccc; padding: 5px;">Download TXT</th>';
+                    echo '<th style="border: 1px solid #ccc; padding: 5px;">Resultados</th>';
+                    echo '</tr></thead>';
                     echo '<tbody>';
                     foreach ($jogos_gerados as $jogo) {
-                        $data_hora = date('d/m/Y H:i:s', strtotime($jogo['data_hora']));
+                        $data_geracao = date('d/m/Y H:i:s', strtotime($jogo['data_geracao']));
                         // Verificar se o resultado do concurso existe
                         $stmt = $pdo->prepare("SELECT COUNT(*) FROM resultados WHERE concurso = ?");
                         $stmt->execute([$jogo['concurso']]);
                         $resultado_existe = $stmt->fetchColumn() > 0;
                         echo '<tr>';
                         echo '<td style="border: 1px solid #ccc; padding: 5px;">' . htmlspecialchars($jogo['lote_id']) . '</td>';
-                        echo '<td style="border: 1px solid #ccc; padding: 5px;">' . htmlspecialchars($data_hora) . '</td>';
+                        echo '<td style="border: 1px solid #ccc; padding: 5px;">' . htmlspecialchars($data_geracao) . '</td>';
                         echo '<td style="border: 1px solid #ccc; padding: 5px;">' . htmlspecialchars($jogo['concurso']) . '</td>';
                         echo '<td style="border: 1px solid #ccc; padding: 5px;">';
                         if (file_exists($jogo['pdf_path'])) {
@@ -286,26 +370,26 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
             }
             ?>
         </div>
-    </div>
-    
-    <script>
-function verResultados(lote_id, concurso) {
-    let xhr = new XMLHttpRequest();
-    xhr.open('POST', 'conferir.php', true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            alert('Acertos:\n' + xhr.responseText.replace(/<br>/g, '\n'));
-        } else {
-            alert('Erro ao conferir resultados: ' + xhr.statusText);
-        }
-    };
-    xhr.onerror = function() {
-        alert('Erro na requisição');
-    };
-    xhr.send('lote_id=' + encodeURIComponent(lote_id) + '&concurso=' + encodeURIComponent(concurso));
-}
-</script>
+
+        <script>
+            function verResultados(lote_id, concurso) {
+                let xhr = new XMLHttpRequest();
+                xhr.open('POST', 'conferir.php', true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        alert('Acertos:\n' + xhr.responseText.replace(/<br>/g, '\n'));
+                    } else {
+                        alert('Erro ao conferir resultados: ' + xhr.statusText);
+                    }
+                };
+                xhr.onerror = function() {
+                    alert('Erro na requisição');
+                };
+                xhr.send('lote_id=' + encodeURIComponent(lote_id) + '&concurso=' + encodeURIComponent(concurso));
+            }
+        </script>
 
 </body>
+
 </html>
