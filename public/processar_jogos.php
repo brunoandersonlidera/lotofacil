@@ -1,7 +1,7 @@
 <?php
-require_once 'includes/db.php';
-require_once 'includes/auth.php';
-require_once 'vendor/fpdf/fpdf.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once  __DIR__ . '/../vendor/fpdf/fpdf.php';
 
 if (!isLoggedIn()) {
     header('Location: login.php');

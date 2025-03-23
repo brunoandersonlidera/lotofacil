@@ -3,7 +3,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-session_start(); // Inicia a sessão para acessar $_SESSION
+session_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -180,8 +180,51 @@ include __DIR__ . '/../templates/header.php';
         </div>
     </div>
 
-    <!-- Script específico para "Ver Resultados" -->
+    <!-- Scripts JavaScript para a aba Gerar Jogos -->
     <script>
+        let fixos = [];
+        let excluidos = [];
+
+        function toggleFixo(numero) {
+            const elemento = document.getElementById(`fixo-${numero}`);
+            if (fixos.includes(numero)) {
+                fixos = fixos.filter(n => n !== numero);
+                elemento.style.backgroundColor = '';
+            } else {
+                fixos.push(numero);
+                elemento.style.backgroundColor = 'red';
+            }
+            document.getElementById('numeros_fixos').value = fixos.join(',');
+        }
+
+        function toggleExcluido(numero) {
+            const elemento = document.getElementById(`excluido-${numero}`);
+            if (excluidos.includes(numero)) {
+                excluidos = excluidos.filter(n => n !== numero);
+                elemento.style.backgroundColor = '';
+            } else {
+                excluidos.push(numero);
+                elemento.style.backgroundColor = 'blue';
+            }
+            document.getElementById('numeros_excluidos').value = excluidos.join(',');
+        }
+
+        function toggleEstrategia(estrategia) {
+            const btn = document.getElementById(`btn-${estrategia}`);
+            const input = document.getElementById(`estrategia-${estrategia}`);
+            if (btn.classList.contains('off')) {
+                btn.classList.remove('off');
+                btn.classList.add('on');
+                btn.style.backgroundColor = 'green';
+                input.value = estrategia;
+            } else {
+                btn.classList.remove('on');
+                btn.classList.add('off');
+                btn.style.backgroundColor = '';
+                input.value = '';
+            }
+        }
+
         function verResultados(lote_id, concurso) {
             let xhr = new XMLHttpRequest();
             xhr.open('POST', 'conferir.php', true);
