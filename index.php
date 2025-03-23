@@ -52,7 +52,7 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
             <div class="tab active" onclick="showTab('gerar')">Gerar Jogos</div>
             <div class="tab" onclick="showTab('temperatura')">Temperatura dos Números</div>
             <div class="tab" onclick="showTab('adicionar')">Adicionar Resultado</div>
-            <div class="tab" onclick="window.location.href='jogos_gerados.php'">Jogos Gerados</div>
+            <div class="tab" onclick="showTab('jogos_gerados')">Jogos Gerados</div>
         </div>
 
         <!-- Tab: Gerar Jogos -->
@@ -120,13 +120,52 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
                 <button type="submit" class="submit-btn">Adicionar</button>
             </form>
         </div>
+
+        <!-- Tab: Jogos Gerados -->
+        <div id="jogos_gerados" class="tab-content">
+            <h2>Jogos Gerados</h2>
+            <?php
+            $stmt = $pdo->prepare("SELECT lote_id, concurso, jogos, pdf_path, txt_path FROM jogos_gerados WHERE user_id = ? ORDER BY lote_id DESC");
+            $stmt->execute([$_SESSION['user_id']]);
+            $jogos_gerados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if ($jogos_gerados) {
+                echo '<table class="table table-striped">';
+                echo '<thead><tr><th>Lote</th><th>Concurso</th><th>Jogos</th><th>Downloads</th></tr></thead>';
+                echo '<tbody>';
+                foreach ($jogos_gerados as $jogo) {
+                    $jogos = json_decode($jogo['jogos'], true);
+                    echo '<tr>';
+                    echo '<td>' . htmlspecialchars($jogo['lote_id']) . '</td>';
+                    echo '<td>' . htmlspecialchars($jogo['concurso']) . '</td>';
+                    echo '<td>';
+                    foreach ($jogos as $index => $numeros) {
+                        echo sprintf("Jogo %02d: %s<br>", $index + 1, implode(', ', $numeros));
+                    }
+                    echo '</td>';
+                    echo '<td>';
+                    if (file_exists($jogo['pdf_path'])) {
+                        echo '<a href="' . htmlspecialchars($jogo['pdf_path']) . '" download>PDF</a> ';
+                    }
+                    if (file_exists($jogo['txt_path'])) {
+                        echo '<a href="' . htmlspecialchars($jogo['txt_path']) . '" download>TXT</a>';
+                    }
+                    echo '</td>';
+                    echo '</tr>';
+                }
+                echo '</tbody></table>';
+            } else {
+                echo '<p>Nenhum jogo gerado ainda.</p>';
+            }
+            ?>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         function showTab(tabId) {
-            console.log('Showing tab: ' + tabId); // Debug
+            console.log('Showing tab: ' + tabId);
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
@@ -134,7 +173,7 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
         }
 
         function toggleFixo(numero) {
-            console.log('Toggling fixo: ' + numero); // Debug
+            console.log('Toggling fixo: ' + numero);
             const el = document.getElementById('fixo-' + numero);
             if (!el.classList.contains('excluido')) {
                 el.classList.toggle('fixo');
@@ -143,7 +182,7 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
         }
 
         function toggleExcluido(numero) {
-            console.log('Toggling excluido: ' + numero); // Debug
+            console.log('Toggling excluido: ' + numero);
             const el = document.getElementById('excluido-' + numero);
             if (!el.classList.contains('fixo')) {
                 el.classList.toggle('excluido');
@@ -154,11 +193,11 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
         function updateNumeros(inputId, selector) {
             const nums = Array.from(document.querySelectorAll(selector)).map(el => el.textContent.trim());
             document.getElementById(inputId).value = nums.join(', ');
-            console.log(inputId + ': ' + document.getElementById(inputId).value); // Debug
+            console.log(inputId + ': ' + document.getElementById(inputId).value);
         }
 
         function toggleEstrategia(estrategia) {
-            console.log('Toggling estrategia: ' + estrategia); // Debug
+            console.log('Toggling estrategia: ' + estrategia);
             const btn = document.getElementById('btn-' + estrategia);
             const input = document.getElementById('estrategia-' + estrategia);
             if (btn.classList.contains('off')) {
@@ -170,11 +209,11 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
                 btn.classList.add('off');
                 input.value = '';
             }
-            console.log('Estrategia ' + estrategia + ': ' + input.value); // Debug
+            console.log('Estrategia ' + estrategia + ': ' + input.value);
         }
 
         window.onload = () => {
-            console.log('Window loaded'); // Debug
+            console.log('Window loaded');
             showTab('gerar');
             toggleEstrategia('frequencia');
             toggleEstrategia('sequencias');
