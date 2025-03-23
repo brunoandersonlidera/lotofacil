@@ -1,1 +1,4 @@
-includes\config.php
+/includes/config.php
+/vendor/
+/.env
+erros.log

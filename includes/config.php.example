@@ -1,7 +1,0 @@
-<?php
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'lotofacil');
-define('DB_USER', 'lotofacil');
-define('DB_PASS', '123456');
-define('BASE_URL', '');
-?>

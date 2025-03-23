@@ -1,0 +1,19 @@
+{
+    "name": "bruno/lotofacil",
+    "description": "Gerador de jogos para Lotofácil",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Bruno\\Lotofacil\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "brunoandersonlidera",
+            "email": "brunoanderson1@gmail.com"
+        }
+    ],
+    "require": {
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
