@@ -47,34 +47,30 @@ function simularPrevisoesUltimos20($pdo) {
 }
 
 function analisarFrequenciaAteConcurso($pdo, $concurso, $ultimosN = 50) {
-    $stmt = $pdo->prepare("SELECT numeros FROM resultados WHERE concurso < ? ORDER BY concurso DESC LIMIT ?");
-    $stmt->bindValue(1, $concurso, PDO::PARAM_INT);
-    $stmt->bindValue(2, $ultimosN, PDO::PARAM_INT);
+    $stmt = $pdo->prepare("SELECT numeros FROM resultados WHERE concurso < :concurso ORDER BY concurso DESC LIMIT :limit");
+    $stmt->bindValue(':concurso', (int)$concurso, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', (int)$ultimosN, PDO::PARAM_INT);
     $stmt->execute();
-    $resultados = $stmt->fetchAll();
+    $resultados = $stmt->fetchAll(PDO::FETCH_COLUMN);
     $bolas = [];
-    foreach ($resultados as $res) {
-        $numeros = json_decode($res['numeros'], true);
+    foreach ($resultados as $num) {
+        $numeros = json_decode($num, true);
+        if ($numeros === null) {
+            error_log("Erro ao decodificar JSON em analisarFrequenciaAteConcurso: " . json_last_error_msg(), 3, "erros.log");
+            continue;
+        }
         $bolas = array_merge($bolas, $numeros);
     }
     return array_count_values($bolas);
 }
 
-function analisarFrequenciaUltimosN($pdo, $n = 50) {
-    $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT ?");
-    $stmt->bindValue(1, $n, PDO::PARAM_INT);
-    $stmt->execute();
-    $resultados = $stmt->fetchAll();
-    $bolas = [];
-    foreach ($resultados as $res) {
-        $numeros = json_decode($res['numeros'], true);
-        $bolas = array_merge($bolas, $numeros);
-    }
-    return array_count_values($bolas);
+try {
+    $temperatura = getTemperaturaNumeros($pdo);
+    $simulacao = simularPrevisoesUltimos20($pdo);
+} catch (Exception $e) {
+    echo '<p>Erro ao carregar Temperatura dos Números: ' . htmlspecialchars($e->getMessage()) . '</p>';
+    exit;
 }
-
-$temperatura = getTemperaturaNumeros($pdo);
-$simulacao = simularPrevisoesUltimos20($pdo);
 ?>
 
 <div class="container mt-5">

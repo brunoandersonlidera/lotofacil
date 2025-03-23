@@ -1,14 +1,24 @@
 <?php
-function analisarFrequenciaUltimosN($pdo, $ultimosN = 50) {
-    $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT ?");
-    $stmt->execute([$ultimosN]);
-    $resultados = $stmt->fetchAll();
-    $bolas = [];
-    foreach ($resultados as $res) {
-        $numeros = json_decode($res['numeros'], true);
-        $bolas = array_merge($bolas, $numeros);
+function analisarFrequenciaUltimosN($pdo, $n = 50) {
+    try {
+        $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT :limit");
+        $stmt->bindValue(':limit', (int)$n, PDO::PARAM_INT);
+        $stmt->execute();
+        $resultados = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $bolas = [];
+        foreach ($resultados as $num) {
+            $numeros = json_decode($num, true);
+            if ($numeros === null) {
+                error_log("Erro ao decodificar JSON em analisarFrequenciaUltimosN: " . json_last_error_msg(), 3, "erros.log");
+                continue;
+            }
+            $bolas = array_merge($bolas, $numeros);
+        }
+        return array_count_values($bolas);
+    } catch (Exception $e) {
+        error_log("Erro em analisarFrequenciaUltimosN: " . $e->getMessage(), 3, "erros.log");
+        throw $e; // Re-throw para ser capturado no temperatura.php
     }
-    return array_count_values($bolas);
 }
 
 function gerarJogo($quantidadeNumeros, $numerosFixos, $numerosExcluidos, $estrategias, $pdo) {
