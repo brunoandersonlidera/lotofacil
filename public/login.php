@@ -13,7 +13,7 @@ if (isLoggedIn()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['username'] ?? ''; // Mantemos "username" no formulário por enquanto
+    $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
     $pdo = getDB();
     
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p style="color: red;"><?= htmlspecialchars($error) ?></p>
     <?php endif; ?>
     <form method="POST">
-        <label>E-mail: <input type="email" name="username" required></label><br>
+        <label>E-mail: <input type="email" name="email" required></label><br>
         <label>Senha: <input type="password" name="password" required></label><br>
         <button type="submit">Entrar</button>
     </form>

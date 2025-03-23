@@ -3,6 +3,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+session_start(); // Inicia a sessão para acessar $_SESSION
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -44,7 +45,7 @@ include __DIR__ . '/../templates/header.php';
         <div class="tab-pane fade show active" id="gerar" role="tabpanel" aria-labelledby="gerar-tab">
             <h2 class="mt-3">Gerar Jogos</h2>
             <form id="gerarForm" action="processar_jogos.php" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <div class="mb-3">
                     <label for="quantidade_numeros" class="form-label">Quantidade de Números por Jogo (15-20):</label>
                     <input type="number" class="form-control" id="quantidade_numeros" name="quantidade_numeros" min="15" max="20" value="15" required>
@@ -87,7 +88,7 @@ include __DIR__ . '/../templates/header.php';
                         ];
                         foreach ($estrategias as $estrategia => $tooltip): ?>
                             <div>
-                                <button type="button" id="btn-<?= $estrategia ?>" class="toggle-btn off" onclick="toggleEstrategia('<?= $estrategia ?>')" title="<?= $tooltip ?>">
+                                <button type="button" id="btn-<?= $estrategia ?>" class="toggle-btn off" onclick="toggleEstrategia('<?= $estrategia ?>')" title="<?= htmlspecialchars($tooltip) ?>">
                                     <?= ucfirst($estrategia) ?>
                                 </button>
                                 <input type="hidden" id="estrategia-<?= $estrategia ?>" name="estrategias[]" value="">
@@ -114,7 +115,7 @@ include __DIR__ . '/../templates/header.php';
         <div class="tab-pane fade" id="adicionar" role="tabpanel" aria-labelledby="adicionar-tab">
             <h2 class="mt-3">Adicionar Resultado</h2>
             <form action="adicionar_resultado.php" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <div class="mb-3">
                     <label for="concurso" class="form-label">Concurso:</label>
                     <input type="number" class="form-control" id="concurso" name="concurso" required>
@@ -163,7 +164,7 @@ include __DIR__ . '/../templates/header.php';
                         }
                         echo '</td>';
                         echo '<td>';
-                        echo '<button class="btn btn-sm btn-primary result-btn" onclick="verResultados(\'' . $jogo['lote_id'] . '\', ' . $jogo['concurso'] . ')"' . ($resultado_existe ? '' : ' disabled') . '>Ver Resultados</button>';
+                        echo '<button class="btn btn-sm btn-primary result-btn" onclick="verResultados(\'' . htmlspecialchars($jogo['lote_id']) . '\', ' . $jogo['concurso'] . ')"' . ($resultado_existe ? '' : ' disabled') . '>Ver Resultados</button>';
                         echo '</td>';
                         echo '</tr>';
                     }

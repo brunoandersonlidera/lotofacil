@@ -6,7 +6,7 @@ function getDB() {
         $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8";
         $pdo = new PDO($dsn, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        echo "Conexão OK: " . DB_NAME; // Depuração
+        // echo "Conexão OK: " . DB_NAME; // Comentado para evitar saída indesejada em produção
         return $pdo;
     } catch (PDOException $e) {
         error_log("Erro na conexão com o banco: " . $e->getMessage());
