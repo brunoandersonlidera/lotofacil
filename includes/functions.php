@@ -37,7 +37,6 @@ function gerarJogo($quantidadeNumeros, $numerosFixos, $numerosExcluidos, $estrat
     return $jogo;
 }
 
-<?php
 function getUltimoConcurso($pdo) {
     try {
         $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
@@ -48,4 +47,3 @@ function getUltimoConcurso($pdo) {
         return [0, []];
     }
 }
-?>
