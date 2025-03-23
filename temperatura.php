@@ -48,7 +48,22 @@ function simularPrevisoesUltimos20($pdo) {
 
 function analisarFrequenciaAteConcurso($pdo, $concurso, $ultimosN = 50) {
     $stmt = $pdo->prepare("SELECT numeros FROM resultados WHERE concurso < ? ORDER BY concurso DESC LIMIT ?");
-    $stmt->execute([$concurso, $ultimosN]);
+    $stmt->bindValue(1, $concurso, PDO::PARAM_INT);
+    $stmt->bindValue(2, $ultimosN, PDO::PARAM_INT);
+    $stmt->execute();
+    $resultados = $stmt->fetchAll();
+    $bolas = [];
+    foreach ($resultados as $res) {
+        $numeros = json_decode($res['numeros'], true);
+        $bolas = array_merge($bolas, $numeros);
+    }
+    return array_count_values($bolas);
+}
+
+function analisarFrequenciaUltimosN($pdo, $n = 50) {
+    $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT ?");
+    $stmt->bindValue(1, $n, PDO::PARAM_INT);
+    $stmt->execute();
     $resultados = $stmt->fetchAll();
     $bolas = [];
     foreach ($resultados as $res) {
@@ -101,38 +116,34 @@ $simulacao = simularPrevisoesUltimos20($pdo);
 
     <!-- Simulação dos Últimos 20 Concursos -->
     <h3 class="text-center text-danger mt-5">Simulação dos Últimos 20 Concursos</h3>
-    <table class="temp-table table table-striped">
+    <table style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr>
-                <th>Concurso</th>
-                <th>Previsão</th>
-                <th>Resultado</th>
-                <th>Acertos</th>
+                <th style="border: 1px solid #ccc; padding: 5px;">Concurso</th>
+                <th style="border: 1px solid #ccc; padding: 5px;">Previsão</th>
+                <th style="border: 1px solid #ccc; padding: 5px;">Resultado</th>
+                <th style="border: 1px solid #ccc; padding: 5px;">Acertos</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($simulacao as $sim): ?>
                 <tr>
-                    <td><?= $sim['concurso'] ?></td>
-                    <td>
+                    <td style="border: 1px solid #ccc; padding: 5px;"><?= $sim['concurso'] ?></td>
+                    <td style="border: 1px solid #ccc; padding: 5px;">
                         <?php foreach ($sim['previsao'] as $num): ?>
                             <span class="prediction-span"><?= $num ?></span>
                         <?php endforeach; ?>
                     </td>
-                    <td>
+                    <td style="border: 1px solid #ccc; padding: 5px;">
                         <?php foreach ($sim['resultado'] as $num): ?>
                             <span class="result-span"><?= $num ?></span>
                         <?php endforeach; ?>
                     </td>
-                    <td><?= $sim['acertos'] ?></td>
+                    <td style="border: 1px solid #ccc; padding: 5px;"><?= $sim['acertos'] ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
-
-    <!-- Gráfico -->
-    <h3 class="text-center text-danger mt-5">Estatísticas de Acertos</h3>
-    <canvas id="acertosChart" width="400" height="200"></canvas>
 </div>
 
 <script>
@@ -140,29 +151,4 @@ $simulacao = simularPrevisoesUltimos20($pdo);
         const freqs = <?= json_encode($temperatura['frequencias']) ?>;
         alert(`Frequência do número ${numero}: ${freqs[numero] || 0} vezes nos últimos 50 concursos`);
     }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('acertosChart').getContext('2d');
-        const simulacao = <?= json_encode($simulacao) ?>;
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: simulacao.map(s => s.concurso),
-                datasets: [{
-                    label: 'Número de Acertos',
-                    data: simulacao.map(s => s.acertos),
-                    borderColor: '#FF4444',
-                    backgroundColor: 'rgba(255, 68, 68, 0.2)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                scales: {
-                    y: { beginAtZero: true, max: 15, title: { display: true, text: 'Acertos' } },
-                    x: { title: { display: true, text: 'Concurso' } }
-                }
-            }
-        });
-    });
 </script>
