@@ -13,18 +13,15 @@ if (isLoggedIn()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
+    $email = $_POST['username'] ?? ''; // Mantemos "username" no formulário por enquanto
     $password = $_POST['password'] ?? '';
-    echo "Username: $username, Password: $password<br>"; // Depuração
     $pdo = getDB();
-    echo "Conexão com banco OK<br>"; // Depuração
     
-    if (login($username, $password, $pdo)) {
-        echo "Login bem-sucedido, redirecionando..."; // Depuração
+    if (login($email, $password, $pdo)) {
         header('Location: index.php');
         exit;
     } else {
-        $error = "Usuário ou senha inválidos.";
+        $error = "E-mail ou senha inválidos.";
     }
 }
 ?>
@@ -40,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p style="color: red;"><?= htmlspecialchars($error) ?></p>
     <?php endif; ?>
     <form method="POST">
-        <label>Usuário: <input type="text" name="username" required></label><br>
+        <label>E-mail: <input type="email" name="username" required></label><br>
         <label>Senha: <input type="password" name="password" required></label><br>
         <button type="submit">Entrar</button>
     </form>
