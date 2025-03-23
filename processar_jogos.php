@@ -15,20 +15,36 @@ define('TRIOS_COMUNS', [[20, 21, 22], [23, 24, 25]]);
 define('TABELA_PRECOS', [15 => 3.00, 16 => 48.00, 17 => 408.00, 18 => 2448.00, 19 => 11628.00, 20 => 38760.00]);
 
 function get_ultimo_concurso($pdo) {
-    $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return $row ? [$row['concurso'], json_decode($row['numeros'])] : [0, []];
+    try {
+        $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? [$row['concurso'], json_decode($row['numeros'])] : [0, []];
+    } catch (Exception $e) {
+        error_log("Erro em get_ultimo_concurso: " . $e->getMessage(), 3, "erros.log");
+        return [0, []];
+    }
 }
 
 function analisar_frequencia_ultimos_n($pdo, $n = 50) {
-    $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT ?");
-    $stmt->execute([$n]);
-    $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    $todos_numeros = [];
-    foreach ($numeros as $n) {
-        $todos_numeros = array_merge($todos_numeros, json_decode($n));
+    try {
+        $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT :limit");
+        $stmt->bindValue(':limit', (int)$n, PDO::PARAM_INT); // Forçar como inteiro
+        $stmt->execute();
+        $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $todos_numeros = [];
+        foreach ($numeros as $num) {
+            $decoded = json_decode($num);
+            if ($decoded === null) {
+                error_log("Erro ao decodificar JSON em analisar_frequencia_ultimos_n: " . json_last_error_msg(), 3, "erros.log");
+                continue;
+            }
+            $todos_numeros = array_merge($todos_numeros, $decoded);
+        }
+        return array_count_values($todos_numeros);
+    } catch (Exception $e) {
+        error_log("Erro em analisar_frequencia_ultimos_n: " . $e->getMessage(), 3, "erros.log");
+        return [];
     }
-    return array_count_values($todos_numeros);
 }
 
 function numeros_atrasados($pdo, $n = 50) {

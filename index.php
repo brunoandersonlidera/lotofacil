@@ -24,87 +24,7 @@ function get_ultimo_concurso($pdo) {
     }
 }
 
-function analisar_frequencia_ultimos_n($pdo, $n = 50) {
-    try {
-        $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT ?");
-        $stmt->execute([$n]);
-        $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $todos_numeros = [];
-        foreach ($numeros as $n) {
-            $todos_numeros = array_merge($todos_numeros, json_decode($n));
-        }
-        return array_count_values($todos_numeros);
-    } catch (Exception $e) {
-        error_log("Erro em analisar_frequencia_ultimos_n: " . $e->getMessage(), 3, "erros.log");
-        return [];
-    }
-}
-
-function analisar_frequencia_ate_concurso($pdo, $concurso, $n = 50) {
-    try {
-        $stmt = $pdo->prepare("SELECT numeros FROM resultados WHERE concurso < ? ORDER BY concurso DESC LIMIT ?");
-        $stmt->execute([$concurso, $n]);
-        $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $todos_numeros = [];
-        foreach ($numeros as $n) {
-            $todos_numeros = array_merge($todos_numeros, json_decode($n));
-        }
-        return array_count_values($todos_numeros);
-    } catch (Exception $e) {
-        error_log("Erro em analisar_frequencia_ate_concurso: " . $e->getMessage(), 3, "erros.log");
-        return [];
-    }
-}
-
-function get_temperatura_numeros($pdo) {
-    $freq = analisar_frequencia_ultimos_n($pdo, 50);
-    if (empty($freq)) return ['quentes' => [], 'mornos' => [], 'frios' => [], 'congelados' => range(1, 25), 'quatro_mais_quentes' => [], 'frequencias' => array_fill(1, 25, 0)];
-    arsort($freq);
-    $sorted_freq = array_keys($freq);
-    $quentes = array_slice($sorted_freq, 0, 12);
-    $mornos = array_slice($sorted_freq, 12, 6);
-    $frios = array_slice($sorted_freq, 18, 5);
-    $congelados = array_diff(range(1, 25), array_keys($freq));
-    $quatro_mais_quentes = array_slice($sorted_freq, 0, 4);
-    return [
-        'quentes' => $quentes,
-        'mornos' => $mornos,
-        'frios' => $frios,
-        'congelados' => $congelados,
-        'quatro_mais_quentes' => $quatro_mais_quentes,
-        'frequencias' => array_merge(array_fill(1, 25, 0), $freq)
-    ];
-}
-
-function simular_previsoes_ultimos_20($pdo) {
-    try {
-        $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 20");
-        $ultimos_20 = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $simulacao = [];
-        foreach ($ultimos_20 as $row) {
-            $concurso = $row['concurso'];
-            $resultado = json_decode($row['numeros']);
-            $freq = analisar_frequencia_ate_concurso($pdo, $concurso);
-            arsort($freq);
-            $previsao = array_slice(array_keys($freq), 0, 15);
-            $acertos = count(array_intersect($previsao, $resultado));
-            $simulacao[] = [
-                'concurso' => $concurso,
-                'previsao' => $previsao,
-                'resultado' => $resultado,
-                'acertos' => $acertos
-            ];
-        }
-        return array_reverse($simulacao);
-    } catch (Exception $e) {
-        error_log("Erro em simular_previsoes_ultimos_20: " . $e->getMessage(), 3, "erros.log");
-        return [];
-    }
-}
-
 list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
-$temperatura = get_temperatura_numeros($pdo);
-$simulacao = simular_previsoes_ultimos_20($pdo);
 ?>
 
 <!DOCTYPE html>
@@ -176,70 +96,7 @@ $simulacao = simular_previsoes_ultimos_20($pdo);
 
         <!-- Tab: Temperatura dos Números -->
         <div id="temperatura" class="tab-content">
-            <h2>Temperatura dos Números</h2>
-            <div class="temp-section">
-                <div class="temp-title">🔥 Quentes (12 mais frequentes)</div>
-                <div class="temp-numbers">
-                    <?php foreach ($temperatura['quentes'] as $num): ?>
-                        <span class="temp-number quente <?= in_array($num, $temperatura['quatro_mais_quentes']) ? 'top-4' : '' ?>" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <div class="temp-section">
-                <div class="temp-title">🌞 Mornos (13º ao 18º)</div>
-                <div class="temp-numbers">
-                    <?php foreach ($temperatura['mornos'] as $num): ?>
-                        <span class="temp-number morno" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <div class="temp-section">
-                <div class="temp-title">❄️ Frios (19º ao 23º)</div>
-                <div class="temp-numbers">
-                    <?php foreach ($temperatura['frios'] as $num): ?>
-                        <span class="temp-number frio" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <div class="temp-section">
-                <div class="temp-title">🧊 Congelados (menos frequentes)</div>
-                <div class="temp-numbers">
-                    <?php foreach ($temperatura['congelados'] as $num): ?>
-                        <span class="temp-number congelado" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php if (!empty($simulacao)): ?>
-                <h3 style="color: #FF4444; text-align: center; margin-top: 30px;">Simulação dos Últimos 20 Concursos</h3>
-                <table class="temp-table">
-                    <tr>
-                        <th>Concurso</th>
-                        <th>Previsão</th>
-                        <th>Resultado</th>
-                        <th>Acertos</th>
-                    </tr>
-                    <?php foreach ($simulacao as $sim): ?>
-                        <tr>
-                            <td><?= $sim['concurso'] ?></td>
-                            <td>
-                                <?php foreach ($sim['previsao'] as $num): ?>
-                                    <span class="prediction-span"><?= $num ?></span>
-                                <?php endforeach; ?>
-                            </td>
-                            <td>
-                                <?php foreach ($sim['resultado'] as $num): ?>
-                                    <span class="result-span"><?= $num ?></span>
-                                <?php endforeach; ?>
-                            </td>
-                            <td><?= $sim['acertos'] ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </table>
-                <h3 style="color: #FF4444; text-align: center; margin-top: 30px;">Estatísticas de Acertos</h3>
-                <canvas id="acertosChart" width="400" height="200"></canvas>
-            <?php else: ?>
-                <p style="text-align: center; color: #FF4444;">Nenhum dado disponível para simulação.</p>
-            <?php endif; ?>
+            <?php include 'temperatura.php'; ?>
         </div>
 
         <!-- Tab: Adicionar Resultado -->
@@ -300,50 +157,11 @@ $simulacao = simular_previsoes_ultimos_20($pdo);
             }
         }
 
-        function showFreq(numero) {
-            const freqs = <?php echo json_encode($temperatura['frequencias']); ?>;
-            alert(`Frequência do número ${numero}: ${freqs[numero]} vezes nos últimos 50 concursos`);
-        }
-
         window.onload = () => {
             showTab('gerar');
             toggleEstrategia('frequencia');
             toggleEstrategia('sequencias');
             toggleEstrategia('soma');
-
-            <?php if (!empty($simulacao)): ?>
-            const ctx = document.getElementById('acertosChart').getContext('2d');
-            const simulacao = <?php echo json_encode($simulacao); ?>;
-            const chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: simulacao.map(s => s.concurso),
-                    datasets: [{
-                        label: 'Número de Acertos',
-                        data: simulacao.map(s => s.acertos),
-                        borderColor: '#FF4444',
-                        backgroundColor: 'rgba(255, 68, 68, 0.2)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: { beginAtZero: true, max: 15, title: { display: true, text: 'Acertos' } },
-                        x: { title: { display: true, text: 'Concurso' } }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `Acertos: ${context.raw}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            <?php endif; ?>
         };
     </script>
 </body>
