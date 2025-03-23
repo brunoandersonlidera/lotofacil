@@ -1,34 +1,160 @@
-/* Estilos gerais */
+/* assets/css/style.css */
 body {
-    background: linear-gradient(to bottom, #e0f7fa, #b2ebf2);
     font-family: 'Arial', sans-serif;
+    margin: 20px;
+    background: linear-gradient(to bottom, #e0f7fa, #b2ebf2);
 }
 
 .container {
     max-width: 1200px;
+    margin: auto;
     background: white;
     padding: 20px;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Abas */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+}
+
+.tab {
+    flex: 1;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    background: #e0e0e0;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.tab.active {
+    background: #FF4444;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+    padding: 20px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Estilização do volante */
+.volante {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.numero {
+    padding: 12px;
+    text-align: center;
+    border: 2px solid #ddd;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.numero.fixo {
+    background: #FF4444;
+    color: white;
+    border-color: #e53935;
+}
+
+.numero.excluido {
+    background: #4444FF;
+    color: white;
+    border-color: #1e88e5;
+}
+
+/* Botões */
+.btn-primary,
+.submit-btn {
+    background: #FF4444;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+    width: 100%;
+}
+
+.btn-primary:hover,
+.submit-btn:hover {
+    background: #e53935;
+}
+
+.btn-sm.btn-primary {
+    width: auto;
+}
+
+.btn-success {
+    background: #4CAF50;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-success:hover {
+    background: #45a049;
+}
+
+/* Tabela */
+.table {
+    width: 100%;
+    border-collapse: collapse;
     margin-top: 20px;
 }
 
-/* Navbar personalizada */
-.navbar {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.table th,
+.table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
 }
 
-.navbar-brand {
+.table th {
+    background: #FF4444;
+    color: white;
+    font-size: 16px;
+}
+
+.table td {
+    background: #fafafa;
+    transition: background 0.3s;
+}
+
+.table tr:hover td {
+    background: #f0f0f0;
+}
+
+/* Labels e Inputs */
+label {
+    display: block;
+    margin: 10px 0 5px;
     font-weight: bold;
-    color: #FF4444;
 }
 
-.nav-link.active {
-    color: #FF4444 !important;
-    font-weight: bold;
+input[type="number"],
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
 }
 
-/* Seção de Temperatura */
+/* Temperatura dos Números */
 .temp-section {
     margin: 20px 0;
 }
@@ -54,6 +180,11 @@ body {
     cursor: pointer;
 }
 
+.temp-number:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
 .temp-number.quente {
     background: #FF4444;
 }
@@ -70,86 +201,23 @@ body {
     background: #B0BEC5;
 }
 
-.temp-number.top-4 {
-    border: 3px solid #FFD700;
-    box-shadow: 0 0 10px #FFD700;
-}
+/* Ajustes para responsividade */
+@media (max-width: 768px) {
+    .volante {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .table th,
+    .table td {
+        font-size: 14px;
+        padding: 8px;
+    }
 
-.temp-number:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
+    .tabs {
+        flex-direction: column;
+    }
 
-/* Tabela de simulação */
-.temp-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-.temp-table th,
-.temp-table td {
-    padding: 12px;
-    text-align: center;
-    border: 1px solid #ddd;
-}
-
-.temp-table th {
-    background: #FF4444;
-    color: white;
-    font-size: 16px;
-}
-
-.temp-table td {
-    background: #fafafa;
-    transition: background 0.3s;
-}
-
-.temp-table tr:hover td {
-    background: #f0f0f0;
-}
-
-.prediction-span {
-    background: #FF8A65;
-    padding: 5px 10px;
-    border-radius: 15px;
-    margin: 2px;
-    display: inline-block;
-    color: white;
-}
-
-.result-span {
-    background: #4CAF50;
-    padding: 5px 10px;
-    border-radius: 15px;
-    margin: 2px;
-    display: inline-block;
-    color: white;
-}
-
-/* Botões */
-.btn-primary {
-    background-color: #FF4444;
-    border-color: #FF4444;
-    transition: background-color 0.3s;
-}
-
-.btn-primary:hover {
-    background-color: #e53935;
-    border-color: #e53935;
-}
-
-/* Cards no index */
-.card {
-    transition: transform 0.3s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-}
-
-/* Gráfico */
-#acertosChart {
-    margin-top: 20px;
+    .tab {
+        padding: 10px;
+    }
 }

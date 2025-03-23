@@ -10,12 +10,14 @@ CREATE TABLE usuarios (
 -- Tabela de jogos gerados
 CREATE TABLE jogos_gerados (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id INT NOT NULL,
+    user_id INT NOT NULL,
     lote_id VARCHAR(14) NOT NULL,
-    jogos JSON NOT NULL,
-    data_geracao VARCHAR(20) NOT NULL,
     concurso INT NOT NULL,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    jogos JSON NOT NULL,
+    data_geracao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    pdf_path VARCHAR(255),
+    txt_path VARCHAR(255),
+    FOREIGN KEY (user_id) REFERENCES usuarios(id)
 );
 
 -- Tabela de resultados
