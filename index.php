@@ -36,14 +36,19 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { cursor: pointer; padding: 10px; background-color: #f0f0f0; }
+        .tab.active { background-color: #007bff; color: white; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .numero { cursor: pointer; display: inline-block; margin: 5px; padding: 5px; border: 1px solid #ccc; }
         .fixo { background-color: red; color: white; }
         .excluido { background-color: blue; color: white; }
-        .toggle-btn { cursor: pointer; padding: 5px 10px; }
+        .toggle-btn { cursor: pointer; padding: 5px 10px; border: none; }
         .toggle-btn.off { background-color: #ccc; }
         .toggle-btn.on { background-color: #28a745; color: white; }
+        .estrategias-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .submit-btn { margin-top: 20px; padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -58,7 +63,7 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
         <!-- Tab: Gerar Jogos -->
         <div id="gerar" class="tab-content active">
             <h2>Gerar Jogos</h2>
-            <form action="processar_jogos.php" method="POST">
+            <form id="gerarForm" action="processar_jogos.php" method="POST">
                 <label>Quantidade de Números por Jogo (15-20):</label>
                 <input type="number" name="quantidade_numeros" min="15" max="20" value="15" required>
                 <label>Quantidade de Jogos:</label>
@@ -164,60 +169,112 @@ list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        console.log('Script carregado'); // Verifica se o script está sendo executado
+
         function showTab(tabId) {
-            console.log('Showing tab: ' + tabId);
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
+            console.log('Tentando abrir aba: ' + tabId);
+            try {
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                    console.log('Removendo active de: ' + tab.id);
+                });
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                const tabContent = document.getElementById(tabId);
+                const tabButton = document.querySelector(`[onclick="showTab('${tabId}')"]`);
+                if (tabContent && tabButton) {
+                    tabContent.classList.add('active');
+                    tabButton.classList.add('active');
+                    console.log('Aba ' + tabId + ' ativada');
+                } else {
+                    console.error('Elemento não encontrado para aba: ' + tabId);
+                }
+            } catch (e) {
+                console.error('Erro em showTab: ' + e.message);
+            }
         }
 
         function toggleFixo(numero) {
-            console.log('Toggling fixo: ' + numero);
-            const el = document.getElementById('fixo-' + numero);
-            if (!el.classList.contains('excluido')) {
-                el.classList.toggle('fixo');
-                updateNumeros('numeros_fixos', '.fixo');
+            console.log('Toggle fixo: ' + numero);
+            try {
+                const el = document.getElementById('fixo-' + numero);
+                if (el && !el.classList.contains('excluido')) {
+                    el.classList.toggle('fixo');
+                    updateNumeros('numeros_fixos', '.fixo');
+                } else {
+                    console.error('Elemento fixo-' + numero + ' não encontrado ou já excluído');
+                }
+            } catch (e) {
+                console.error('Erro em toggleFixo: ' + e.message);
             }
         }
 
         function toggleExcluido(numero) {
-            console.log('Toggling excluido: ' + numero);
-            const el = document.getElementById('excluido-' + numero);
-            if (!el.classList.contains('fixo')) {
-                el.classList.toggle('excluido');
-                updateNumeros('numeros_excluidos', '.excluido');
+            console.log('Toggle excluido: ' + numero);
+            try {
+                const el = document.getElementById('excluido-' + numero);
+                if (el && !el.classList.contains('fixo')) {
+                    el.classList.toggle('excluido');
+                    updateNumeros('numeros_excluidos', '.excluido');
+                } else {
+                    console.error('Elemento excluido-' + numero + ' não encontrado ou já fixo');
+                }
+            } catch (e) {
+                console.error('Erro em toggleExcluido: ' + e.message);
             }
         }
 
         function updateNumeros(inputId, selector) {
-            const nums = Array.from(document.querySelectorAll(selector)).map(el => el.textContent.trim());
-            document.getElementById(inputId).value = nums.join(', ');
-            console.log(inputId + ': ' + document.getElementById(inputId).value);
+            console.log('Atualizando ' + inputId);
+            try {
+                const nums = Array.from(document.querySelectorAll(selector)).map(el => el.textContent.trim());
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.value = nums.join(', ');
+                    console.log(inputId + ' atualizado para: ' + input.value);
+                } else {
+                    console.error('Input ' + inputId + ' não encontrado');
+                }
+            } catch (e) {
+                console.error('Erro em updateNumeros: ' + e.message);
+            }
         }
 
         function toggleEstrategia(estrategia) {
-            console.log('Toggling estrategia: ' + estrategia);
-            const btn = document.getElementById('btn-' + estrategia);
-            const input = document.getElementById('estrategia-' + estrategia);
-            if (btn.classList.contains('off')) {
-                btn.classList.remove('off');
-                btn.classList.add('on');
-                input.value = estrategia;
-            } else {
-                btn.classList.remove('on');
-                btn.classList.add('off');
-                input.value = '';
+            console.log('Toggle estrategia: ' + estrategia);
+            try {
+                const btn = document.getElementById('btn-' + estrategia);
+                const input = document.getElementById('estrategia-' + estrategia);
+                if (btn && input) {
+                    if (btn.classList.contains('off')) {
+                        btn.classList.remove('off');
+                        btn.classList.add('on');
+                        input.value = estrategia;
+                    } else {
+                        btn.classList.remove('on');
+                        btn.classList.add('off');
+                        input.value = '';
+                    }
+                    console.log('Estrategia ' + estrategia + ' agora é: ' + input.value);
+                } else {
+                    console.error('Botão ou input para ' + estrategia + ' não encontrado');
+                }
+            } catch (e) {
+                console.error('Erro em toggleEstrategia: ' + e.message);
             }
-            console.log('Estrategia ' + estrategia + ': ' + input.value);
         }
 
-        window.onload = () => {
-            console.log('Window loaded');
-            showTab('gerar');
-            toggleEstrategia('frequencia');
-            toggleEstrategia('sequencias');
-            toggleEstrategia('soma');
+        window.onload = function() {
+            console.log('Página carregada');
+            try {
+                showTab('gerar');
+                toggleEstrategia('frequencia');
+                toggleEstrategia('sequencias');
+                toggleEstrategia('soma');
+            } catch (e) {
+                console.error('Erro no window.onload: ' + e.message);
+            }
         };
     </script>
 </body>
