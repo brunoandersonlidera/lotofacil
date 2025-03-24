@@ -1,13 +1,13 @@
 <?php
 session_start();
-require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once realpath(__DIR__ . '/../vendor/autoload.php');
+require_once realpath(__DIR__ . '/../includes/db.php');
+require_once realpath(__DIR__ . '/../includes/auth.php');
+require_once realpath(__DIR__ . '/../includes/functions.php');
 
 use Dotenv\Dotenv;
 
-$dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv = Dotenv::createImmutable(realpath(__DIR__ . '/..'));
 $dotenv->load();
 
 if (!isLoggedIn()) {
@@ -194,7 +194,7 @@ try {
 
     $lote_id = date('YmdHis');
     $proximo_concurso = $ultimo_concurso + 1;
-    $downloads_dir = __DIR__ . '/downloads';
+    $downloads_dir = realpath(__DIR__ . '/downloads');
     if (!is_dir($downloads_dir)) {
         mkdir($downloads_dir, 0777, true);
     }
@@ -237,7 +237,7 @@ try {
     readfile($pdf_path);
     exit;
 } catch (Exception $e) {
-    error_log("Erro em processar_jogos.php: " . $e->getMessage(), 3, __DIR__ . "/../erros.log");
+    error_log("Erro em processar_jogos.php: " . $e->getMessage(), 3, realpath(__DIR__ . "/../erros.log"));
     http_response_code(500);
     echo "Erro interno: " . htmlspecialchars($e->getMessage());
     exit;

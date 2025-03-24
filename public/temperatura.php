@@ -1,8 +1,8 @@
 <?php
 session_start();
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once realpath(__DIR__ . '/../includes/db.php');
+require_once realpath(__DIR__ . '/../includes/auth.php');
+require_once realpath(__DIR__ . '/../includes/functions.php');
 
 if (!isLoggedIn()) {
     header('Location: login.php');
@@ -15,11 +15,11 @@ function getTemperaturaNumeros($pdo) {
     $freq = analisarFrequenciaUltimosN($pdo, 50);
     arsort($freq);
     $sortedFreq = array_keys($freq);
-    $quentes = array_slice($sortedFreq, 0, 12);
-    $mornos = array_slice($sortedFreq, 12, 6);
-    $frios = array_slice($sortedFreq, 18, 5);
-    $congelados = array_diff(range(1, 25), array_keys($freq));
-    $quatroMaisQuentes = array_slice($sortedFreq, 0, 4);
+    $quentes = array_slice($sortedFreq, 0, 12); // 12 mais frequentes
+    $mornos = array_slice($sortedFreq, 12, 6);  // Próximos 6
+    $frios = array_slice($sortedFreq, 18, 5);   // Próximos 5
+    $congelados = array_diff(range(1, 25), array_keys($freq)); // Não sorteados
+    $quatroMaisQuentes = array_slice($sortedFreq, 0, 4); // 4 mais quentes
     return [
         'quentes' => $quentes,
         'mornos' => $mornos,
@@ -61,7 +61,7 @@ function analisarFrequenciaAteConcurso($pdo, $concurso, $ultimosN = 50) {
     foreach ($resultados as $num) {
         $numeros = json_decode($num, true);
         if ($numeros === null) {
-            error_log("Erro ao decodificar JSON em analisarFrequenciaAteConcurso: " . json_last_error_msg(), 3, "erros.log");
+            error_log("Erro ao decodificar JSON em analisarFrequenciaAteConcurso para concurso $concurso");
             continue;
         }
         $bolas = array_merge($bolas, $numeros);
@@ -69,87 +69,89 @@ function analisarFrequenciaAteConcurso($pdo, $concurso, $ultimosN = 50) {
     return array_count_values($bolas);
 }
 
-try {
-    $temperatura = getTemperaturaNumeros($pdo);
-    $simulacao = simularPrevisoesUltimos20($pdo);
-} catch (Exception $e) {
-    echo '<p>Erro ao carregar Temperatura dos Números: ' . htmlspecialchars($e->getMessage()) . '</p>';
-    exit;
-}
+$temperatura = getTemperaturaNumeros($pdo);
+$simulacao = simularPrevisoesUltimos20($pdo);
 ?>
 
-<div class="container mt-5">
-    <h2 class="text-center text-danger">Temperatura dos Números</h2>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Temperatura dos Números - Lotofácil</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        .quente { background-color: #ff4d4d; color: white; }
+        .morno { background-color: #ffcc00; color: black; }
+        .frio { background-color: #4da8ff; color: white; }
+        .congelado { background-color: #cccccc; color: black; }
+        .numero { display: inline-block; width: 40px; height: 40px; line-height: 40px; text-align: center; margin: 5px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Temperatura dos Números (Últimos 50 Concursos)</h2>
 
-    <!-- Seção de Temperatura -->
-    <div class="temp-section">
-        <h3 class="temp-title">🔥 Quentes (12 mais frequentes)</h3>
-        <div class="temp-numbers">
+        <h4>Quentes (12 mais frequentes)</h4>
+        <div>
             <?php foreach ($temperatura['quentes'] as $num): ?>
-                <span class="temp-number quente <?= in_array($num, $temperatura['quatro_mais_quentes']) ? 'top-4' : '' ?>" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
+                <span class="numero quente"><?= $num ?></span>
             <?php endforeach; ?>
         </div>
-    </div>
-    <div class="temp-section">
-        <h3 class="temp-title">🌞 Mornos (13º ao 18º)</h3>
-        <div class="temp-numbers">
+
+        <h4>Mornos (6 intermediários)</h4>
+        <div>
             <?php foreach ($temperatura['mornos'] as $num): ?>
-                <span class="temp-number morno" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
+                <span class="numero morno"><?= $num ?></span>
             <?php endforeach; ?>
         </div>
-    </div>
-    <div class="temp-section">
-        <h3 class="temp-title">❄️ Frios (19º ao 23º)</h3>
-        <div class="temp-numbers">
+
+        <h4>Frios (5 menos frequentes)</h4>
+        <div>
             <?php foreach ($temperatura['frios'] as $num): ?>
-                <span class="temp-number frio" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
+                <span class="numero frio"><?= $num ?></span>
             <?php endforeach; ?>
         </div>
-    </div>
-    <div class="temp-section">
-        <h3 class="temp-title">🧊 Congelados (menos frequentes)</h3>
-        <div class="temp-numbers">
-            <?php foreach ($temperatura['congelados'] as $num): ?>
-                <span class="temp-number congelado" onclick="showFreq(<?= $num ?>)"><?= $num ?></span>
-            <?php endforeach; ?>
-        </div>
-    </div>
 
-    <!-- Simulação dos Últimos 20 Concursos -->
-    <h3 class="text-center text-danger mt-5">Simulação dos Últimos 20 Concursos</h3>
-    <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th style="border: 1px solid #ccc; padding: 5px;">Concurso</th>
-                <th style="border: 1px solid #ccc; padding: 5px;">Previsão</th>
-                <th style="border: 1px solid #ccc; padding: 5px;">Resultado</th>
-                <th style="border: 1px solid #ccc; padding: 5px;">Acertos</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($simulacao as $sim): ?>
+        <h4>Congelados (não sorteados)</h4>
+        <div>
+            <?php if (empty($temperatura['congelados'])): ?>
+                <p>Nenhum número congelado.</p>
+            <?php else: ?>
+                <?php foreach ($temperatura['congelados'] as $num): ?>
+                    <span class="numero congelado"><?= $num ?></span>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+
+        <h4>Quatro Mais Quentes</h4>
+        <div>
+            <?php foreach ($temperatura['quatro_mais_quentes'] as $num): ?>
+                <span class="numero quente"><?= $num ?></span>
+            <?php endforeach; ?>
+        </div>
+
+        <h3 class="mt-5">Simulação de Previsões (Últimos 20 Concursos)</h3>
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 5px;"><?= $sim['concurso'] ?></td>
-                    <td style="border: 1px solid #ccc; padding: 5px;">
-                        <?php foreach ($sim['previsao'] as $num): ?>
-                            <span class="prediction-span"><?= $num ?></span>
-                        <?php endforeach; ?>
-                    </td>
-                    <td style="border: 1px solid #ccc; padding: 5px;">
-                        <?php foreach ($sim['resultado'] as $num): ?>
-                            <span class="result-span"><?= $num ?></span>
-                        <?php endforeach; ?>
-                    </td>
-                    <td style="border: 1px solid #ccc; padding: 5px;"><?= $sim['acertos'] ?></td>
+                    <th>Concurso</th>
+                    <th>Previsão (15 números)</th>
+                    <th>Resultado Real</th>
+                    <th>Acertos</th>
                 </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-</div>
-
-<script>
-    function showFreq(numero) {
-        const freqs = <?= json_encode($temperatura['frequencias']) ?>;
-        alert(`Frequência do número ${numero}: ${freqs[numero] || 0} vezes nos últimos 50 concursos`);
-    }
-</script>
+            </thead>
+            <tbody>
+                <?php foreach ($simulacao as $sim): ?>
+                    <tr>
+                        <td><?= $sim['concurso'] ?></td>
+                        <td><?= implode(', ', $sim['previsao']) ?></td>
+                        <td><?= implode(', ', $sim['resultado']) ?></td>
+                        <td><?= $sim['acertos'] ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

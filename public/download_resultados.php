@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once realpath(__DIR__ . '/../includes/db.php');
+require_once realpath(__DIR__ . '/../includes/auth.php');
 requireAdmin();
 
 $url = "https://servicebus2.caixa.gov.br/portaldeloterias/api/lotofacil"; // API do último concurso

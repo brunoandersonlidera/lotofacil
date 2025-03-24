@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once realpath(__DIR__ . '/../includes/db.php');
+require_once realpath(__DIR__ . '/../includes/auth.php');
 
 if (!isLoggedIn() || $_SERVER['REQUEST_METHOD'] !== 'POST' || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
     header('Location: login.php');

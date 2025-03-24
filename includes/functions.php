@@ -25,5 +25,3 @@ function analisarFrequenciaUltimosN($pdo, $n = 50) {
     }
     return array_count_values($bolas);
 }
-
-// Adicione outras funções conforme necessário

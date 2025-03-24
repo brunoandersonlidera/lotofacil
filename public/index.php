@@ -4,9 +4,9 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 session_start();
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once realpath(__DIR__ . '/../includes/db.php');
+require_once realpath(__DIR__ . '/../includes/auth.php');
+require_once realpath(__DIR__ . '/../includes/functions.php');
 
 if (!isLoggedIn()) {
     header('Location: login.php');
@@ -20,7 +20,7 @@ if (!isset($_SESSION['csrf_token'])) {
 $pdo = getDB();
 list($ultimo_concurso, $ultimo_sorteio) = getUltimoConcurso($pdo);
 
-include __DIR__ . '/../templates/header.php';
+include realpath(__DIR__ . '/../templates/header.php');
 ?>
 
 <div class="container mt-4">
@@ -103,7 +103,7 @@ include __DIR__ . '/../templates/header.php';
         <div class="tab-pane fade" id="temperatura" role="tabpanel" aria-labelledby="temperatura-tab">
             <?php
             try {
-                include __DIR__ . '/temperatura.php';
+                include realpath(__DIR__ . '/temperatura.php');
             } catch (Exception $e) {
                 echo '<div class="alert alert-danger">Erro ao carregar Temperatura dos Números: ' . htmlspecialchars($e->getMessage()) . '</div>';
             }
@@ -242,4 +242,4 @@ include __DIR__ . '/../templates/header.php';
     </script>
 </div>
 
-<?php include __DIR__ . '/../templates/footer.php'; ?>
+<?php include realpath(__DIR__ . '/../templates/footer.php'); ?>
