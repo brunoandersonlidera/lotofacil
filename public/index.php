@@ -13,7 +13,6 @@ if (!isLoggedIn()) {
     exit;
 }
 
-// Gerar token CSRF para formulários
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -155,12 +154,12 @@ include __DIR__ . '/../templates/header.php';
                         echo '<td>' . htmlspecialchars($jogo['concurso']) . '</td>';
                         echo '<td>';
                         if (file_exists($jogo['pdf_path'])) {
-                            echo '<a href="' . htmlspecialchars($jogo['pdf_path']) . '" download class="btn btn-sm btn-outline-primary">PDF</a>';
+                            echo '<a href="/downloads/lotofacil_' . htmlspecialchars($jogo['lote_id']) . '.pdf" download class="btn btn-sm btn-outline-primary">PDF</a>';
                         }
                         echo '</td>';
                         echo '<td>';
                         if (file_exists($jogo['txt_path'])) {
-                            echo '<a href="' . htmlspecialchars($jogo['txt_path']) . '" download class="btn btn-sm btn-outline-primary">TXT</a>';
+                            echo '<a href="/downloads/lotofacil_' . htmlspecialchars($jogo['lote_id']) . '.txt" download class="btn btn-sm btn-outline-primary">TXT</a>';
                         }
                         echo '</td>';
                         echo '<td>';
@@ -180,7 +179,6 @@ include __DIR__ . '/../templates/header.php';
         </div>
     </div>
 
-    <!-- Scripts JavaScript para a aba Gerar Jogos -->
     <script>
         let fixos = [];
         let excluidos = [];
@@ -227,11 +225,11 @@ include __DIR__ . '/../templates/header.php';
 
         function verResultados(lote_id, concurso) {
             let xhr = new XMLHttpRequest();
-            xhr.open('POST', 'conferir.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.open('GET', `ver_resultados.php?lote_id=${encodeURIComponent(lote_id)}&concurso=${encodeURIComponent(concurso)}`, true);
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    alert('Acertos:\n' + xhr.responseText.replace(/<br>/g, '\n'));
+                    let acertos = JSON.parse(xhr.responseText);
+                    alert('Acertos por jogo:\n' + acertos.join('\n'));
                 } else {
                     alert('Erro ao conferir resultados: ' + xhr.statusText);
                 }
@@ -239,7 +237,7 @@ include __DIR__ . '/../templates/header.php';
             xhr.onerror = function() {
                 alert('Erro na requisição');
             };
-            xhr.send('lote_id=' + encodeURIComponent(lote_id) + '&concurso=' + encodeURIComponent(concurso));
+            xhr.send();
         }
     </script>
 </div>

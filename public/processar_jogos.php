@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../vendor/autoload.php'; // Para phpdotenv e FPDF
+require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -184,8 +184,12 @@ try {
 
     $lote_id = date('YmdHis');
     $proximo_concurso = $ultimo_concurso + 1;
-    $pdf_path = __DIR__ . "/downloads/lotofacil_$lote_id.pdf";
-    $txt_path = __DIR__ . "/downloads/lotofacil_$lote_id.txt";
+    $downloads_dir = __DIR__ . '/downloads';
+    if (!is_dir($downloads_dir)) {
+        mkdir($downloads_dir, 0777, true);
+    }
+    $pdf_path = "$downloads_dir/lotofacil_$lote_id.pdf";
+    $txt_path = "$downloads_dir/lotofacil_$lote_id.txt";
 
     $stmt = $pdo->prepare("INSERT INTO jogos_gerados (user_id, lote_id, concurso, jogos, pdf_path, txt_path) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->execute([$_SESSION['user_id'], $lote_id, $proximo_concurso, json_encode($jogos), $pdf_path, $txt_path]);
