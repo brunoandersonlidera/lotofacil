@@ -21,6 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $_POST['csrf_token'] !== $_SESSION[
     exit;
 }
 
+// Carregar TABELA_PRECOS do .env
+$tabela_precos = [
+    15 => (float) $_ENV['PRECO_15'],
+    16 => (float) $_ENV['PRECO_16'],
+    17 => (float) $_ENV['PRECO_17'],
+    18 => (float) $_ENV['PRECO_18'],
+    19 => (float) $_ENV['PRECO_19'],
+    20 => (float) $_ENV['PRECO_20']
+];
+
 function gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluidos, $estrategias, $jogos_anteriores, $ultimo_sorteio) {
     $disponiveis = array_diff(range(1, 25), $numeros_excluidos);
     $jogo = $numeros_fixos;
@@ -212,7 +222,7 @@ try {
         $pdf->Cell(0, 10, "Pares: $pares, Impares: " . ($quantidade_numeros - $pares) . ", Primos: $primos, Soma: $soma", 0, 1);
         $pdf->Ln(5);
     }
-    $total_apostas = TABELA_PRECOS[$quantidade_numeros] * count($jogos);
+    $total_apostas = $tabela_precos[$quantidade_numeros] * count($jogos);
     $pdf->Cell(0, 10, "Total de Jogos: " . count($jogos) . " | Custo Total: R$ " . number_format($total_apostas, 2, ',', '.'), 0, 1);
     $pdf->Output('F', $pdf_path);
 
