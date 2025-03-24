@@ -1,4 +1,3 @@
-/includes/config.php
 /vendor/
-/.env
+.env
 erros.log
