@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 
@@ -7,8 +8,14 @@ if (!isLoggedIn()) {
     exit;
 }
 
-$concurso = $_GET['concurso'];
-$lote_id = $_GET['lote_id'];
+$concurso = $_GET['concurso'] ?? '';
+$lote_id = $_GET['lote_id'] ?? '';
+
+if (empty($concurso) || empty($lote_id)) {
+    header('HTTP/1.1 400 Bad Request');
+    echo json_encode(['error' => 'Parâmetros inválidos']);
+    exit;
+}
 
 $pdo = getDB();
 $stmt = $pdo->prepare("SELECT jogos FROM jogos_gerados WHERE lote_id = ? AND user_id = ?");

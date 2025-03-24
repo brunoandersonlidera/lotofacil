@@ -1,71 +1,38 @@
 <?php
+session_start();
+require_once __DIR__ . '/../vendor/autoload.php'; // Para phpdotenv e FPDF
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
-require_once  __DIR__ . '/../vendor/fpdf/fpdf.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+use Dotenv\Dotenv;
+
+$dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
 
 if (!isLoggedIn()) {
     header('Location: login.php');
     exit;
 }
 
-define('PRIMOS', [2, 3, 5, 7, 11, 13, 17, 19, 23]);
-define('PARES', [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]);
-define('IMPARES', [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]);
-define('TRIOS_COMUNS', [[20, 21, 22], [23, 24, 25]]);
-define('TABELA_PRECOS', [15 => 3.00, 16 => 48.00, 17 => 408.00, 18 => 2448.00, 19 => 11628.00, 20 => 38760.00]);
-
-function get_ultimo_concurso($pdo)
-{
-    try {
-        $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 1");
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ? [$row['concurso'], json_decode($row['numeros'])] : [0, []];
-    } catch (Exception $e) {
-        error_log("Erro em get_ultimo_concurso: " . $e->getMessage(), 3, "erros.log");
-        return [0, []];
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    http_response_code(403);
+    echo "Erro: Requisição inválida.";
+    exit;
 }
 
-function analisar_frequencia_ultimos_n($pdo, $n = 50)
-{
-    try {
-        $stmt = $pdo->prepare("SELECT numeros FROM resultados ORDER BY concurso DESC LIMIT :limit");
-        $stmt->bindValue(':limit', (int)$n, PDO::PARAM_INT);
-        $stmt->execute();
-        $numeros = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $todos_numeros = [];
-        foreach ($numeros as $num) {
-            $decoded = json_decode($num);
-            if ($decoded === null) {
-                error_log("Erro ao decodificar JSON em analisar_frequencia_ultimos_n: " . json_last_error_msg(), 3, "erros.log");
-                continue;
-            }
-            $todos_numeros = array_merge($todos_numeros, $decoded);
-        }
-        return array_count_values($todos_numeros);
-    } catch (Exception $e) {
-        error_log("Erro em analisar_frequencia_ultimos_n: " . $e->getMessage(), 3, "erros.log");
-        return [];
-    }
-}
-
-function numeros_atrasados($pdo, $n = 50)
-{
-    $freq = analisar_frequencia_ultimos_n($pdo, $n);
-    return array_diff(range(1, 25), array_keys($freq));
-}
-
-function gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluidos, $estrategias, $jogos_anteriores, $ultimo_sorteio)
-{
+function gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluidos, $estrategias, $jogos_anteriores, $ultimo_sorteio) {
+    $disponiveis = array_diff(range(1, 25), $numeros_excluidos);
     $jogo = $numeros_fixos;
-    $disponiveis = array_diff(range(1, 25), $numeros_excluidos, $jogo);
-    shuffle($disponiveis);
-    $freq_dezenas = analisar_frequencia_ultimos_n($pdo);
-    $atrasados = numeros_atrasados($pdo);
+    $disponiveis = array_diff($disponiveis, $numeros_fixos);
+    $freq_dezenas = analisarFrequenciaUltimosN($pdo);
+    arsort($freq_dezenas);
+    $mais_frequentes = array_keys($freq_dezenas);
+    $atrasados = array_diff(range(1, 25), array_keys($freq_dezenas));
 
     if (in_array('frequencia', $estrategias)) {
-        arsort($freq_dezenas);
-        $mais_frequentes = array_intersect(array_keys($freq_dezenas), $disponiveis);
+        shuffle($disponiveis);
+        $jogo = array_merge($jogo, array_intersect($mais_frequentes, $disponiveis));
         foreach (array_slice($mais_frequentes, 0, rand(10, 12) - count($jogo)) as $n) {
             if (count($jogo) < $quantidade_numeros) {
                 $jogo[] = $n;
@@ -166,100 +133,98 @@ function gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluido
     return $jogo;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        $quantidade_numeros = filter_input(INPUT_POST, 'quantidade_numeros', FILTER_VALIDATE_INT, ['options' => ['min_range' => 15, 'max_range' => 20]]);
-        $quantidade_jogos = filter_input(INPUT_POST, 'quantidade_jogos', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        $numeros_fixos = !empty($_POST['numeros_fixos']) ? array_map('intval', explode(', ', $_POST['numeros_fixos'])) : [];
-        $numeros_excluidos = !empty($_POST['numeros_excluidos']) ? array_map('intval', explode(', ', $_POST['numeros_excluidos'])) : [];
-        $estrategias = array_filter($_POST['estrategias']) ?: ['frequencia']; // Padrão: 'frequencia'
+try {
+    $quantidade_numeros = filter_input(INPUT_POST, 'quantidade_numeros', FILTER_VALIDATE_INT, ['options' => ['min_range' => 15, 'max_range' => 20]]);
+    $quantidade_jogos = filter_input(INPUT_POST, 'quantidade_jogos', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $numeros_fixos = !empty($_POST['numeros_fixos']) ? array_map('intval', explode(',', $_POST['numeros_fixos'])) : [];
+    $numeros_excluidos = !empty($_POST['numeros_excluidos']) ? array_map('intval', explode(',', $_POST['numeros_excluidos'])) : [];
+    $estrategias = array_filter($_POST['estrategias']) ?: ['frequencia'];
 
-        if ($quantidade_numeros === false || $quantidade_jogos === false) {
-            throw new Exception("Quantidade inválida.");
-        }
-
-        $pdo = getDB();
-        $stmt = $pdo->query("SELECT numeros FROM resultados");
-        $jogos_anteriores = array_map(function ($n) {
-            return json_decode($n);
-        }, $stmt->fetchAll(PDO::FETCH_COLUMN));
-        list($ultimo_concurso, $ultimo_sorteio) = get_ultimo_concurso($pdo);
-
-        $jogos = [];
-        $tentativas = 0;
-        $max_tentativas = $quantidade_jogos * 50; // Aumentado para mais flexibilidade
-
-        if (in_array('desdobramento', $estrategias)) {
-            $base = $numeros_fixos;
-            $disponiveis = array_diff(range(1, 25), $numeros_excluidos, $base);
-            $freq_dezenas = analisar_frequencia_ultimos_n($pdo);
-            arsort($freq_dezenas);
-            $base = array_merge($base, array_slice(array_keys($freq_dezenas), 0, 18 - count($base)));
-            while (count($jogos) < $quantidade_jogos && count($base) >= $quantidade_numeros) {
-                $jogo = array_rand(array_flip($base), $quantidade_numeros);
-                sort($jogo);
-                if (!in_array($jogo, $jogos) && !in_array($jogo, $jogos_anteriores)) {
-                    $jogos[] = $jogo;
-                }
-            }
-        } else {
-            while (count($jogos) < $quantidade_jogos && $tentativas < $max_tentativas) {
-                $jogo = gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluidos, $estrategias, $jogos_anteriores, $ultimo_sorteio);
-                if (!in_array($jogo, $jogos)) {
-                    $jogos[] = $jogo;
-                }
-                $tentativas++;
-            }
-        }
-
-        if (count($jogos) < $quantidade_jogos) {
-            throw new Exception("Não foi possível gerar todos os jogos únicos.");
-        }
-
-        $lote_id = date('YmdHis');
-        $proximo_concurso = $ultimo_concurso + 1;
-        $pdf_path = "downloads/lotofacil_$lote_id.pdf";
-        $txt_path = "downloads/lotofacil_$lote_id.txt";
-
-        $stmt = $pdo->prepare("INSERT INTO jogos_gerados (user_id, lote_id, concurso, jogos, pdf_path, txt_path) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $lote_id, $proximo_concurso, json_encode($jogos), $pdf_path, $txt_path]);
-
-        $pdf = new FPDF();
-        $pdf->AddPage();
-        $pdf->SetFont('Arial', 'B', 16);
-        $pdf->Cell(0, 10, 'Relatorio de Apostas - Lotofacil', 0, 1, 'C');
-        $pdf->Ln(10);
-        $pdf->SetFont('Arial', '', 12);
-        $pdf->Cell(0, 10, "Lote: $lote_id | Concurso: $proximo_concurso", 0, 1);
-        $pdf->Cell(0, 10, "Data: " . date('d/m/Y H:i:s'), 0, 1);
-        $pdf->Ln(10);
-        foreach ($jogos as $index => $jogo) {
-            $pares = count(array_intersect($jogo, PARES));
-            $primos = count(array_intersect($jogo, PRIMOS));
-            $soma = array_sum($jogo);
-            $pdf->Cell(0, 10, sprintf("JOGO %03d", $index + 1), 0, 1);
-            $pdf->Cell(0, 10, "Numeros: " . implode(', ', $jogo), 0, 1);
-            $pdf->Cell(0, 10, "Pares: $pares, Impares: " . ($quantidade_numeros - $pares) . ", Primos: $primos, Soma: $soma", 0, 1);
-            $pdf->Ln(5);
-        }
-        $total_apostas = TABELA_PRECOS[$quantidade_numeros] * count($jogos);
-        $pdf->Cell(0, 10, "Total de Jogos: " . count($jogos) . " | Custo Total: R$ " . number_format($total_apostas, 2, ',', '.'), 0, 1);
-        $pdf->Output('F', $pdf_path);
-
-        $txt_content = "";
-        foreach ($jogos as $jogo) {
-            $txt_content .= implode(', ', $jogo) . "\n";
-        }
-        file_put_contents($txt_path, $txt_content);
-
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="lotofacil_' . $lote_id . '.pdf"');
-        readfile($pdf_path);
-        exit;
-    } catch (Exception $e) {
-        error_log("Erro em processar_jogos.php: " . $e->getMessage(), 3, "erros.log");
-        http_response_code(500);
-        echo "Erro interno: " . $e->getMessage();
-        exit;
+    if ($quantidade_numeros === false || $quantidade_jogos === false) {
+        throw new Exception("Quantidade inválida.");
     }
+
+    $pdo = getDB();
+    $stmt = $pdo->query("SELECT numeros FROM resultados");
+    $jogos_anteriores = array_map(function ($n) {
+        return json_decode($n);
+    }, $stmt->fetchAll(PDO::FETCH_COLUMN));
+    list($ultimo_concurso, $ultimo_sorteio) = getUltimoConcurso($pdo);
+
+    $jogos = [];
+    $tentativas = 0;
+    $max_tentativas = $quantidade_jogos * 50;
+
+    if (in_array('desdobramento', $estrategias)) {
+        $base = $numeros_fixos;
+        $disponiveis = array_diff(range(1, 25), $numeros_excluidos, $base);
+        $freq_dezenas = analisarFrequenciaUltimosN($pdo);
+        arsort($freq_dezenas);
+        $base = array_merge($base, array_slice(array_keys($freq_dezenas), 0, 18 - count($base)));
+        while (count($jogos) < $quantidade_jogos && count($base) >= $quantidade_numeros) {
+            $jogo = array_rand(array_flip($base), $quantidade_numeros);
+            sort($jogo);
+            if (!in_array($jogo, $jogos) && !in_array($jogo, $jogos_anteriores)) {
+                $jogos[] = $jogo;
+            }
+        }
+    } else {
+        while (count($jogos) < $quantidade_jogos && $tentativas < $max_tentativas) {
+            $jogo = gerar_jogo($pdo, $quantidade_numeros, $numeros_fixos, $numeros_excluidos, $estrategias, $jogos_anteriores, $ultimo_sorteio);
+            if (!in_array($jogo, $jogos)) {
+                $jogos[] = $jogo;
+            }
+            $tentativas++;
+        }
+    }
+
+    if (count($jogos) < $quantidade_jogos) {
+        throw new Exception("Não foi possível gerar todos os jogos únicos.");
+    }
+
+    $lote_id = date('YmdHis');
+    $proximo_concurso = $ultimo_concurso + 1;
+    $pdf_path = __DIR__ . "/downloads/lotofacil_$lote_id.pdf";
+    $txt_path = __DIR__ . "/downloads/lotofacil_$lote_id.txt";
+
+    $stmt = $pdo->prepare("INSERT INTO jogos_gerados (user_id, lote_id, concurso, jogos, pdf_path, txt_path) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$_SESSION['user_id'], $lote_id, $proximo_concurso, json_encode($jogos), $pdf_path, $txt_path]);
+
+    $pdf = new FPDF();
+    $pdf->AddPage();
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->Cell(0, 10, 'Relatorio de Apostas - Lotofacil', 0, 1, 'C');
+    $pdf->Ln(10);
+    $pdf->SetFont('Arial', '', 12);
+    $pdf->Cell(0, 10, "Lote: $lote_id | Concurso: $proximo_concurso", 0, 1);
+    $pdf->Cell(0, 10, "Data: " . date('d/m/Y H:i:s'), 0, 1);
+    $pdf->Ln(10);
+    foreach ($jogos as $index => $jogo) {
+        $pares = count(array_intersect($jogo, PARES));
+        $primos = count(array_intersect($jogo, PRIMOS));
+        $soma = array_sum($jogo);
+        $pdf->Cell(0, 10, sprintf("JOGO %03d", $index + 1), 0, 1);
+        $pdf->Cell(0, 10, "Numeros: " . implode(', ', $jogo), 0, 1);
+        $pdf->Cell(0, 10, "Pares: $pares, Impares: " . ($quantidade_numeros - $pares) . ", Primos: $primos, Soma: $soma", 0, 1);
+        $pdf->Ln(5);
+    }
+    $total_apostas = TABELA_PRECOS[$quantidade_numeros] * count($jogos);
+    $pdf->Cell(0, 10, "Total de Jogos: " . count($jogos) . " | Custo Total: R$ " . number_format($total_apostas, 2, ',', '.'), 0, 1);
+    $pdf->Output('F', $pdf_path);
+
+    $txt_content = "";
+    foreach ($jogos as $jogo) {
+        $txt_content .= implode(', ', $jogo) . "\n";
+    }
+    file_put_contents($txt_path, $txt_content);
+
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="lotofacil_' . $lote_id . '.pdf"');
+    readfile($pdf_path);
+    exit;
+} catch (Exception $e) {
+    error_log("Erro em processar_jogos.php: " . $e->getMessage(), 3, __DIR__ . "/../erros.log");
+    http_response_code(500);
+    echo "Erro interno: " . htmlspecialchars($e->getMessage());
+    exit;
 }
