@@ -1,5 +1,5 @@
 <?php
-session_start();
+// Removido session_start(), pois já está em index.php
 require_once realpath(__DIR__ . '/../includes/db.php');
 require_once realpath(__DIR__ . '/../includes/auth.php');
 require_once realpath(__DIR__ . '/../includes/functions.php');
@@ -11,15 +11,16 @@ if (!isLoggedIn()) {
 
 $pdo = getDB();
 
+// Restante do código permanece igual...
 function getTemperaturaNumeros($pdo) {
     $freq = analisarFrequenciaUltimosN($pdo, 50);
     arsort($freq);
     $sortedFreq = array_keys($freq);
-    $quentes = array_slice($sortedFreq, 0, 12); // 12 mais frequentes
-    $mornos = array_slice($sortedFreq, 12, 6);  // Próximos 6
-    $frios = array_slice($sortedFreq, 18, 5);   // Próximos 5
-    $congelados = array_diff(range(1, 25), array_keys($freq)); // Não sorteados
-    $quatroMaisQuentes = array_slice($sortedFreq, 0, 4); // 4 mais quentes
+    $quentes = array_slice($sortedFreq, 0, 12);
+    $mornos = array_slice($sortedFreq, 12, 6);
+    $frios = array_slice($sortedFreq, 18, 5);
+    $congelados = array_diff(range(1, 25), array_keys($freq));
+    $quatroMaisQuentes = array_slice($sortedFreq, 0, 4);
     return [
         'quentes' => $quentes,
         'mornos' => $mornos,
@@ -29,6 +30,9 @@ function getTemperaturaNumeros($pdo) {
         'frequencias' => $freq
     ];
 }
+
+// Restante do código continua como está...
+
 
 function simularPrevisoesUltimos20($pdo) {
     $stmt = $pdo->query("SELECT concurso, numeros FROM resultados ORDER BY concurso DESC LIMIT 20");

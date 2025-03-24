@@ -4,7 +4,7 @@
     </div><!-- Fim do container principal -->
     <footer class="bg-dark text-white text-center py-3 mt-5">
         <div class="container">
-            <p>&copy; <?= date('Y') ?> Sistema Lotofácil - Desenvolvido por Lidera Tecnologia</p>
+            <p>&copy; <?= date('Y') ?> Sistema Gerador de Apostas Lotofácil - Desenvolvido por Lidera Tecnologia</p>
             <p><a href="#" class="text-white">Termos de Uso</a> | <a href="#" class="text-white">Política de Privacidade</a></p>
         </div>
     </footer>
