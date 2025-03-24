@@ -1,7 +1,7 @@
 <?php
-session_start();
-require_once realpath(__DIR__ . '/../../includes/auth.php');
-require_once realpath(__DIR__ . '/../../includes/db.php');
+// session_start() removido daqui
+require_once realpath(__DIR__ . '/../includes/auth.php');
+require_once realpath(__DIR__ . '/../includes/db.php');
 
 if (!isLoggedIn()) {
     header('Location: /public/login.php');

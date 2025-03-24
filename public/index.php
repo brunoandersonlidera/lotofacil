@@ -3,7 +3,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-session_start();
+session_start(); // Mantido apenas aqui
 require_once realpath(__DIR__ . '/../includes/db.php');
 require_once realpath(__DIR__ . '/../includes/auth.php');
 require_once realpath(__DIR__ . '/../includes/functions.php');
@@ -22,6 +22,7 @@ list($ultimo_concurso, $ultimo_sorteio) = getUltimoConcurso($pdo);
 
 include realpath(__DIR__ . '/../templates/header.php');
 ?>
+
 
 <div class="container mt-4">
     <ul class="nav nav-tabs" id="myTab" role="tablist">
